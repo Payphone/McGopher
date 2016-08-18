@@ -5,7 +5,7 @@
         #:mcgopher.utils
         #:usocket)
   (:export #:gopher-get
-           #:gopher-follow
+           #:gopher-goto
            #:gopher-item
            #:gopher-message
            #:gopher-category
@@ -43,6 +43,18 @@
   (aif (response-to-item response)
        (cons it (response-to-list response))))
 
+(defun address-to-item (address)
+  (let* ((address (ppcre:split "[^a-zA-Z0-9_\\-.]"
+                              (ppcre:regex-replace "(.*?):\/\/" address "")
+                              :limit 2))
+         (location (aif (cadr address) it ""))
+         (category-position (ppcre:scan "[0-9]\/+" location)))
+    (make-instance 'gopher-item
+                   :category (aif category-position (char location it) nil)
+                   :host (car address)
+                   :port 70
+                   :location (format nil "/~A" location))))
+
 (defun response-to-string (response)
   (with-output-to-string (stream)
     (loop for line = (read-line response nil)
@@ -56,7 +68,8 @@
     (force-output stream)
     (response-to-list stream)))
 
-(defun gopher-follow (item)
-  (gopher-get (gopher-host item)
-              (gopher-port item)
-              (gopher-location item)))
+(defun gopher-goto (address)
+  (let ((item (address-to-item address)))
+    (gopher-get (gopher-host item)
+                70
+                (gopher-location item))))

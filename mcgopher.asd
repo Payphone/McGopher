@@ -5,7 +5,8 @@
   :author "Peyton Farrar <peyton@peytonfarrar.com>"
   :license "LLGPL"
   :depends-on (#:mcclim
-               #:usocket)
+               #:usocket
+               #:cl-ppcre)
   :serial t
   :components ((:file "utils")
                (:file "gopher")

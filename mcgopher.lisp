@@ -3,12 +3,11 @@
 (in-package #:mcgopher)
 
 (define-application-frame superapp ()
-  ((page-host :initform "sdf.org" :accessor page-host)
-   (page-location :initform "/" :accessor page-location))
+  ((page-address :initform "sdf.org/" :accessor page-address))
   (:pointer-documentation t :menubar menubar-command-table)
   (:panes
    (address :text-field
-            :value (page-location *application-frame*)
+            :value (page-address *application-frame*)
             :activate-callback 'address-callback)
    (app :application
         :incremental-redisplay t
@@ -31,16 +30,14 @@
   (run-frame-top-level (make-application-frame 'superapp :width 1200)))
 
 (defun address-callback (gadget)
-  (setf (page-location *application-frame*)
+  (setf (page-address *application-frame*)
         (gadget-value gadget))
   (redisplay-frame-pane *application-frame*
                         (get-frame-pane *application-frame* 'app)
                         :force-p t))
 
 (defun display-app (frame pane)
-  (loop for item in (gopher-get (page-host frame)
-                                70
-                                (page-location frame))
+  (loop for item in (gopher-goto (page-address frame))
      do (updating-output (pane :unique-id item)
           (display-item pane item))))
 
@@ -52,11 +49,11 @@
 
 (define-superapp-command com-goto ((item 'gopher-item :gesture :select))
   (let ((frame *application-frame*))
-    (setf (page-host frame) (gopher-host item))
-    (setf (page-port frame) (parse-integer (gopher-port item)))
-    (setf (page-location frame) (gopher-location item))
+    (setf (page-address frame) (format nil "~A~A"
+                                       (gopher-host item)
+                                       (gopher-location item)))
     (setf (gadget-value (find-pane-named frame 'address))
-          (gopher-location item))))
+          (page-address frame))))
 
 (define-superapp-command com-get-url ((item 'gopher-item :gesture :describe))
   (format t "~A~A" (gopher-host item) (gopher-location item)))
