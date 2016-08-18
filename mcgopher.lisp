@@ -49,8 +49,9 @@
 
 (define-superapp-command com-goto ((item 'gopher-item :gesture :select))
   (let ((frame *application-frame*))
-    (setf (page-address frame) (format nil "~A~A"
+    (setf (page-address frame) (format nil "~A/~A~A"
                                        (gopher-host item)
+                                       (gopher-category item)
                                        (gopher-location item)))
     (setf (gadget-value (find-pane-named frame 'address))
           (page-address frame))))

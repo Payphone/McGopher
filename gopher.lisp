@@ -43,14 +43,17 @@
   (aif (response-to-item response)
        (cons it (response-to-list response))))
 
+(defun address-to-list (address)
+  (ppcre:split "[^a-zA-Z0-9_\\-.]"
+               (ppcre:regex-replace "(.*?):\/\/" address "") :limit 3))
+
 (defun address-to-item (address)
-  (let* ((address (ppcre:split "[^a-zA-Z0-9_\\-.]"
-                              (ppcre:regex-replace "(.*?):\/\/" address "")
-                              :limit 2))
-         (location (aif (cadr address) it ""))
-         (category-position (ppcre:scan "[0-9]\/+" location)))
+  (let* ((address (address-to-list address))
+         (category-position (ppcre:scan "[0-9]+" (cadr address)))
+         (category (aif category-position (char (cadr address) it) #\1))
+         (location (aif (caddr address) it "")))
     (make-instance 'gopher-item
-                   :category (aif category-position (char location it) nil)
+                   :category category
                    :host (car address)
                    :port 70
                    :location (format nil "/~A" location))))
@@ -60,16 +63,21 @@
     (loop for line = (read-line response nil)
        while line do (format stream "~a~%" line))))
 
-(defun gopher-get (host port location)
+(defun gopher-get (&key host port location category)
   "Sends a request to a gopher server returning a list of gopher items"
   (let* ((socket (socket-connect host port :timeout 15))
          (stream (socket-stream socket)))
     (format stream "~a~%" location)
     (force-output stream)
-    (response-to-list stream)))
+    (case category
+      (#\0 (list (make-instance 'gopher-item
+                                :category #\i
+                                :content (response-to-string stream))))
+      (t (response-to-list stream)))))
 
 (defun gopher-goto (address)
   (let ((item (address-to-item address)))
-    (gopher-get (gopher-host item)
-                70
-                (gopher-location item))))
+    (gopher-get :host (gopher-host item)
+                :port 70
+                :location (gopher-location item)
+                :category (gopher-category item))))
