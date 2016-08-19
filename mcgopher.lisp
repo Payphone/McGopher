@@ -55,21 +55,21 @@
 
 ;; Display Funcions
 
-(defun display-app (frame pane)
-  (loop for item in (gopher-goto (queue-front (page-history frame)))
-     do (updating-output (pane :unique-id item)
-          (display-item pane item))))
-
-;; Presentation Methods
-
 (define-presentation-type gopher-item ())
 
 (defmethod display-item (pane (item gopher-item))
   (case (gopher-category item)
     (#\i (format pane "~A~%" (gopher-content item)))
+    (#\3 (with-text-face (pane :italic)
+           (format pane "~A~%" (gopher-content item))))
     (t (with-output-as-presentation (pane item 'gopher-item)
          (with-text-face (pane :bold)
            (format pane "~A~%" (gopher-content item)))))))
+
+(defun display-app (frame pane)
+  (loop for item in (gopher-goto (queue-front (page-history frame)))
+     do (updating-output (pane :unique-id item)
+          (display-item pane item))))
 
 ;; Commands
 
@@ -86,6 +86,9 @@
                                  it))
     (setf (gadget-value (find-pane-named frame 'address))
           (queue-front (page-history frame)))))
+
+(define-superapp-command (com-previous :name t :keystroke (:left :hyper)) ()
+  (page-previous))
 
 ;; Main
 
