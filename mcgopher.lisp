@@ -10,13 +10,15 @@
   (:panes
    (back-button :push-button
                 :label "Back"
-                :activate-callback #'(lambda (gadget)
-                                       (declare (ignore gadget))
-                                       (page-previous)))
-   (address :text-field-pane
+                :activate-callback #'(lambda (gadget) (declare (ignore gadget))
+                                             (page-previous)))
+   (address :text-field
             :value (queue-front (page-history *application-frame*))
             :activate-callback 'address-callback
             :text-style (make-text-style :fix :roman :huge))
+   (go-button :push-button
+              :label "Go"
+              :activate-callback 'go-callback)
    (app :application
         :incremental-redisplay t
         :display-function 'display-app
@@ -24,7 +26,7 @@
    (int :interactor-pane))
   (:layouts
    (default (vertically ()
-              (1/12 (horizontally (:x-spacing 5) back-button address))
+              (1/12 (horizontally (:x-spacing 5) back-button address go-button))
               (10/12 app) (1/12 int)))))
 
 ;; Callbacks
@@ -35,6 +37,10 @@
   (redisplay-frame-pane *application-frame*
                         (get-frame-pane *application-frame* 'app)
                         :force-p t))
+
+(defun go-callback (gadget)
+  (declare (ignore gadget))
+  (address-callback (find-pane-named *application-frame* 'address)))
 
 (defun page-previous ()
   (unless (string= (queue-front (page-history *application-frame*))
