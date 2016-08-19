@@ -3,7 +3,7 @@
 (in-package #:mcgopher)
 
 (define-application-frame superapp ()
-  ((page-address :initform "sdf.org/" :accessor page-address))
+  ((page-address :initform "gopher.floodgap.com/1" :accessor page-address))
   (:pointer-documentation t :menubar menubar-command-table)
   (:panes
    (address :text-field
@@ -17,6 +17,24 @@
   (:layouts
    (default (vertically () (1/12 address) (10/12 app) (1/12 int)))))
 
+;; Callbacks
+
+(defun address-callback (gadget)
+  (setf (page-address *application-frame*)
+        (gadget-value gadget))
+  (redisplay-frame-pane *application-frame*
+                        (get-frame-pane *application-frame* 'app)
+                        :force-p t))
+
+;; Display Funcions
+
+(defun display-app (frame pane)
+  (loop for item in (gopher-goto (page-address frame))
+     do (updating-output (pane :unique-id item)
+          (display-item pane item))))
+
+;; Presentation Methods
+
 (define-presentation-type gopher-item ())
 
 (defmethod display-item (pane (item gopher-item))
@@ -26,23 +44,8 @@
          (with-text-face (pane :bold)
            (format pane "~A~%" (gopher-content item)))))))
 
-(defun app-main ()
-  (run-frame-top-level (make-application-frame 'superapp :width 1200)))
 
-(defun address-callback (gadget)
-  (setf (page-address *application-frame*)
-        (gadget-value gadget))
-  (redisplay-frame-pane *application-frame*
-                        (get-frame-pane *application-frame* 'app)
-                        :force-p t))
-
-(defun display-app (frame pane)
-  (loop for item in (gopher-goto (page-address frame))
-     do (updating-output (pane :unique-id item)
-          (display-item pane item))))
-
-(define-superapp-command (com-set-url :name t) ()
-  (format t "~A" (gadget-value (slot-value *application-frame* 'address))))
+;; Commands
 
 (define-superapp-command (com-quit :menu "Quit") ()
   (frame-exit *application-frame*))
@@ -58,3 +61,8 @@
 
 (define-superapp-command com-get-url ((item 'gopher-item :gesture :describe))
   (format t "~A~A" (gopher-host item) (gopher-location item)))
+
+;; Main
+
+(defun app-main ()
+  (run-frame-top-level (make-application-frame 'superapp :width 1200)))

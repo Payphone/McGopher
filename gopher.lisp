@@ -4,10 +4,8 @@
   (:use #:cl
         #:mcgopher.utils
         #:usocket)
-  (:export #:gopher-get
-           #:gopher-goto
+  (:export #:gopher-goto
            #:gopher-item
-           #:gopher-message
            #:gopher-category
            #:gopher-content
            #:gopher-location
@@ -23,14 +21,8 @@
    (host :initarg :host :accessor gopher-host)
    (gopher-port :initarg :port :accessor gopher-port)))
 
-(defun read-until (separator stream &optional output)
-  (let ((character (read-char stream nil nil)))
-    (if (or (not character) (char= separator character))
-        (coerce (reverse output) 'string)
-        (read-until separator stream
-                    (cons character output)))))
-
 (defun response-to-item (response)
+  "Given a stream, reads a Gopher item into an instance"
   (if (peek-char nil response nil nil)
        (make-instance 'gopher-item
                       :category (read-char response)
@@ -40,28 +32,19 @@
                       :port (remove #\Return (read-until #\Newline response)))))
 
 (defun response-to-list (response)
+  "Reads from a stream until it reaches the end,
+   consing Gopher items into a list along the way"
   (aif (response-to-item response)
        (cons it (response-to-list response))))
 
-(defun address-to-list (address)
-  (ppcre:split "[^a-zA-Z0-9_\\-.]"
-               (ppcre:regex-replace "(.*?):\/\/" address "") :limit 3))
-
-(defun address-to-item (address)
-  (let* ((address (address-to-list address))
-         (category-position (ppcre:scan "[0-9]+" (cadr address)))
-         (category (aif category-position (char (cadr address) it) #\1))
-         (location (aif (caddr address) it "")))
-    (make-instance 'gopher-item
-                   :category category
-                   :host (car address)
-                   :port 70
-                   :location (format nil "/~A" location))))
-
 (defun response-to-string (response)
+  "Reads from a stream, returning the contents as string"
   (with-output-to-string (stream)
     (loop for line = (read-line response nil)
        while line do (format stream "~a~%" line))))
+
+(defun fix-formatting (string)
+  (tabs-to-spaces (remove #\Return string)))
 
 (defun gopher-get (&key host port location category)
   "Sends a request to a gopher server returning a list of gopher items"
@@ -72,12 +55,23 @@
     (case category
       (#\0 (list (make-instance 'gopher-item
                                 :category #\i
-                                :content (response-to-string stream))))
+                                :content (fix-formatting
+                                          (response-to-string stream)))))
       (t (response-to-list stream)))))
 
+(defun address-to-gopher-list (address)
+  "Converts an address separated by '/' to a list of three elements.
+   The first is the host, the second is the Gopher type, and third the location"
+  (ppcre:split "[^a-zA-Z0-9_\\-.]"
+               (ppcre:regex-replace "(.*?):\/\/" address "") :limit 3))
+
 (defun gopher-goto (address)
-  (let ((item (address-to-item address)))
-    (gopher-get :host (gopher-host item)
+  "Given an address, returns a list of Gopher items"
+  (let* ((address (address-to-gopher-list address))
+         (category-position (ppcre:scan "[0-9]+" (cadr address)))
+         (category (aif category-position (char (cadr address) it) #\1))
+         (location (aif (caddr address) it "")))
+    (gopher-get :category category
+                :host (car address)
                 :port 70
-                :location (gopher-location item)
-                :category (gopher-category item))))
+                :location (format nil "/~A" location))))
