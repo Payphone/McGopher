@@ -3,33 +3,54 @@
 (in-package #:mcgopher)
 
 (define-application-frame superapp ()
-  ((page-address :initform "gopher.floodgap.com/1" :accessor page-address))
-  (:pointer-documentation t :menubar menubar-command-table)
+  ((history :initform (make-queue :elements '("gopher.floodgap.com/1")
+                                  :max-size 10)
+            :accessor page-history))
+  (:pointer-documentation t)
   (:panes
-   (address :text-field
-            :value (page-address *application-frame*)
-            :activate-callback 'address-callback)
+   (back-button :push-button
+                :label "Back"
+                :activate-callback #'(lambda (gadget)
+                                       (declare (ignore gadget))
+                                       (page-previous)))
+   (address :text-field-pane
+            :value (queue-front (page-history *application-frame*))
+            :activate-callback 'address-callback
+            :text-style (make-text-style :fix :roman :huge))
    (app :application
         :incremental-redisplay t
         :display-function 'display-app
         :text-style (make-text-style :sans-serif :roman :very-large))
    (int :interactor-pane))
   (:layouts
-   (default (vertically () (1/12 address) (10/12 app) (1/12 int)))))
+   (default (vertically ()
+              (1/12 (horizontally (:x-spacing 5) back-button address))
+              (10/12 app) (1/12 int)))))
 
 ;; Callbacks
 
 (defun address-callback (gadget)
-  (setf (page-address *application-frame*)
-        (gadget-value gadget))
+  (asetf (page-history *application-frame*)
+         (queue-push (gadget-value gadget) it))
   (redisplay-frame-pane *application-frame*
                         (get-frame-pane *application-frame* 'app)
                         :force-p t))
 
+(defun page-previous ()
+  (unless (string= (queue-front (page-history *application-frame*))
+                   (queue-front (queue-next (page-history *application-frame*))))
+    (asetf (page-history *application-frame*)
+           (queue-next it))
+    (setf (gadget-value (find-pane-named *application-frame* 'address))
+          (queue-front (page-history *application-frame*)))
+    (redisplay-frame-pane *application-frame*
+                          (get-frame-pane *application-frame* 'app)
+                          :force-p t)))
+
 ;; Display Funcions
 
 (defun display-app (frame pane)
-  (loop for item in (gopher-goto (page-address frame))
+  (loop for item in (gopher-goto (queue-front (page-history frame)))
      do (updating-output (pane :unique-id item)
           (display-item pane item))))
 
@@ -44,7 +65,6 @@
          (with-text-face (pane :bold)
            (format pane "~A~%" (gopher-content item)))))))
 
-
 ;; Commands
 
 (define-superapp-command (com-quit :menu "Quit") ()
@@ -52,15 +72,14 @@
 
 (define-superapp-command com-goto ((item 'gopher-item :gesture :select))
   (let ((frame *application-frame*))
-    (setf (page-address frame) (format nil "~A/~A~A"
-                                       (gopher-host item)
-                                       (gopher-category item)
-                                       (gopher-location item)))
+    (asetf (page-history frame) (queue-push
+                                 (format nil "~A/~A~A"
+                                        (gopher-host item)
+                                        (gopher-category item)
+                                        (gopher-location item))
+                                 it))
     (setf (gadget-value (find-pane-named frame 'address))
-          (page-address frame))))
-
-(define-superapp-command com-get-url ((item 'gopher-item :gesture :describe))
-  (format t "~A~A" (gopher-host item) (gopher-location item)))
+          (queue-front (page-history frame)))))
 
 ;; Main
 
