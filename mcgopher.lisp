@@ -15,7 +15,7 @@
    (address :text-field
             :value (queue-front (page-history *application-frame*))
             :activate-callback 'address-callback
-            :text-style (make-text-style :fix :roman :huge))
+            :text-style (make-text-style :fix :roman :very-large))
    (go-button :push-button
               :label "Go"
               :activate-callback 'go-callback)
@@ -60,7 +60,7 @@
 (defmethod display-item (pane (item gopher-item))
   (case (gopher-category item)
     (#\i (format pane "~A~%" (gopher-content item)))
-    (#\3 (with-text-face (pane :italic)
+    (#\3 (with-drawing-options (pane :ink +red+)
            (format pane "~A~%" (gopher-content item))))
     (t (with-output-as-presentation (pane item 'gopher-item)
          (with-text-face (pane :bold)
@@ -87,7 +87,7 @@
     (setf (gadget-value (find-pane-named frame 'address))
           (queue-front (page-history frame)))))
 
-(define-superapp-command (com-previous :name t :keystroke (:left :hyper)) ()
+(define-superapp-command (com-previous :name t :keystroke (:left :meta)) ()
   (page-previous))
 
 ;; Main
