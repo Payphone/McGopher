@@ -32,6 +32,8 @@
 ;; Callbacks
 
 (defun address-callback (gadget)
+  "Sets the address gadget value and the frame history, then refreshes the
+   frame."
   (asetf (page-history *application-frame*)
          (queue-push (gadget-value gadget) it))
   (redisplay-frame-pane *application-frame*
@@ -39,10 +41,13 @@
                         :force-p t))
 
 (defun go-callback (gadget)
+  "Calls the address-callback."
   (declare (ignore gadget))
   (address-callback (find-pane-named *application-frame* 'address)))
 
 (defun page-previous ()
+  "Moves the history back one element and updates the address, then updates the
+   frame."
   (unless (string= (queue-front (page-history *application-frame*))
                    (queue-front (queue-next (page-history *application-frame*))))
     (asetf (page-history *application-frame*)
@@ -58,6 +63,7 @@
 (define-presentation-type gopher-item ())
 
 (defmethod display-item (pane (item gopher-item))
+  "Displays a Gopher item."
   (case (gopher-category item)
     (#\i (format pane "~A~%" (gopher-content item)))
     (#\3 (with-drawing-options (pane :ink +red+)
@@ -67,6 +73,7 @@
            (format pane "~A~%" (gopher-content item)))))))
 
 (defun display-app (frame pane)
+  "Draws Gopher items to the frame by pulling data from the current page."
   (loop for item in (gopher-goto (queue-front (page-history frame)))
      do (updating-output (pane :unique-id item)
           (display-item pane item))))
@@ -74,9 +81,11 @@
 ;; Commands
 
 (define-superapp-command (com-quit :menu "Quit") ()
+  "Exits the application."
   (frame-exit *application-frame*))
 
 (define-superapp-command com-goto ((item 'gopher-item :gesture :select))
+  "Follows a Gopher item's URL."
   (let ((frame *application-frame*))
     (asetf (page-history frame) (queue-push
                                  (format nil "~A/~A~A"
@@ -88,9 +97,11 @@
           (queue-front (page-history frame)))))
 
 (define-superapp-command (com-previous :name t :keystroke (:left :meta)) ()
+  "Moves back one page."
   (page-previous))
 
 ;; Main
 
 (defun app-main ()
+  "Main entry point to McGopher"
   (run-frame-top-level (make-application-frame 'superapp :width 1200)))
