@@ -53,12 +53,9 @@
     (asetf (page-history *application-frame*)
            (queue-next it))
     (setf (gadget-value (find-pane-named *application-frame* 'address))
-          (queue-front (page-history *application-frame*)))
-    (redisplay-frame-pane *application-frame*
-                          (get-frame-pane *application-frame* 'app)
-                          :force-p t)))
+          (queue-front (page-history *application-frame*)))))
 
-;; Display Funcions
+;; Display Functions
 
 (define-presentation-type gopher-item ())
 
