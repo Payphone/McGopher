@@ -15,8 +15,6 @@
 (in-package #:mcgopher.gopher)
 
 (defclass gopher-item ()
-  "A single server response in the format of 'CATEGORY CONTENT #\Tab LOCATION
-   #\Tab HOST #\Tab PORT #\Return #\Newline'."
   ((content :initarg :content :accessor gopher-content)
    (category :initarg :category :accessor gopher-category)
    (location :initarg :location :accessor gopher-location)
@@ -51,16 +49,16 @@
 
 (defun gopher-get (&key host port location category)
   "Sends a request to a gopher server returning a list of gopher items."
-  (let* ((socket (socket-connect host port :timeout 15))
-         (stream (socket-stream socket)))
-    (format stream "~a~%" location)
-    (force-output stream)
-    (case category
-      (#\0 (list (make-instance 'gopher-item
-                                :category #\i
-                                :content (fix-formatting
-                                          (response-to-string stream)))))
-      (t (response-to-list stream)))))
+  (with-connected-socket (socket (socket-connect host port :timeout 15))
+    (let ((stream (socket-stream socket)))
+      (format stream "~a~%" location)
+      (force-output stream)
+      (case category
+        (#\0 (list (make-instance 'gopher-item
+                                  :category #\i
+                                  :content (fix-formatting
+                                            (response-to-string stream)))))
+        (t (response-to-list stream))))))
 
 (defun address-to-gopher-list (address)
   "Converts an address separated by '/' to a list of three elements. The first
@@ -72,6 +70,7 @@
   "Given an address, returns a list of Gopher items."
   (let* ((address (address-to-gopher-list address))
          (category-position (ppcre:scan "[0-9]+" (cadr address)))
+         ;; Unless otherwise specified, assume the address is a directory list
          (category (aif category-position (char (cadr address) it) #\1))
          (location (aif (caddr address) it "")))
     (gopher-get :category category
