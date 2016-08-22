@@ -22,7 +22,7 @@
    (app :application
         :incremental-redisplay t
         :display-function 'display-app
-        :text-style (make-text-style :sans-serif :roman :very-large))
+        :text-style (make-text-style :fix :roman :very-large))
    (int :interactor-pane))
   (:layouts
    (default (vertically ()
