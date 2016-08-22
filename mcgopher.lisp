@@ -27,7 +27,8 @@
   (:layouts
    (default (vertically ()
               (1/12 (horizontally (:x-spacing 5) back-button address go-button))
-              (10/12 app) (1/12 int)))))
+              (10/12 app)
+              (1/12 int)))))
 
 ;; Callbacks
 
