@@ -60,20 +60,14 @@
                                             (response-to-string stream)))))
         (t (response-to-list stream))))))
 
-(defun address-to-gopher-list (address)
-  "Converts an address separated by '/' to a list of three elements. The first
-   is the host, the second is the Gopher type, and third the location."
-  (ppcre:split "[^a-zA-Z0-9_\\-.]"
-               (ppcre:regex-replace "(.*?):\/\/" address "") :limit 3))
-
 (defun gopher-goto (address)
   "Given an address, returns a list of Gopher items."
-  (let* ((address (address-to-gopher-list address))
-         (category-position (ppcre:scan "[0-9]+" (cadr address)))
-         ;; Unless otherwise specified, assume the address is a directory list
-         (category (aif category-position (char (cadr address) it) #\1))
-         (location (aif (caddr address) it "")))
-    (gopher-get :category category
-                :host (car address)
+  (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 3))
+         (host (first split-address))
+         (category (scan-character "[0-9ghilsT]+" (second split-address)))
+         (location (third split-address)))
+    ;; Unless otherwise specified, assume the category is a directory list
+    (gopher-get :category (aif category it #\1)
+                :host host
                 :port 70
-                :location (format nil "/~A" location))))
+                :location (cat "/" location))))

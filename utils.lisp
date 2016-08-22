@@ -4,8 +4,10 @@
   (:export #:aif
            #:asetf
            #:it
+           #:cat
            #:read-until
            #:tabs-to-spaces
+           #:scan-character
            #:queue
            #:make-queue
            #:queue-front
@@ -13,6 +15,8 @@
            #:queue-next))
 
 (in-package #:mcgopher.utils)
+
+;; Macros
 
 (defmacro aif (test then &optional else)
   "Anaphoric if, allows 'it' to be used in the body."
@@ -24,6 +28,12 @@
    value to 'it'."
   `(let ((it ,value))
      (setf ,value ,new-value)))
+
+(defmacro cat (&rest strings)
+  "Concatenates strings"
+  `(concatenate 'string ,@strings))
+
+;; Miscellaneous Functions
 
 (defun read-until (separator stream &optional output)
   "Reads from a stream until it reaches the separator character, then returns
@@ -37,6 +47,12 @@
 (defun tabs-to-spaces (string)
   "Converts all tabs to four spaces in a string."
   (ppcre:regex-replace-all #\Tab string "    "))
+
+(defun scan-character (regex string)
+  "Scans a string using regex and returns the first matching character."
+  (aif (ppcre:scan regex string) (char string it)))
+
+;; Queue
 
 (defstruct queue
   "A structure for a queue of elements with a maximum size. If the max size is
