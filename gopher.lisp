@@ -60,6 +60,13 @@
                                             (response-to-string stream)))))
         (t (response-to-list stream))))))
 
+(defun gopher-item-to-address (item)
+  "Converts a Gopher item to an address"
+  (format nil "~A/~A~A"
+          (gopher-host item)
+          (gopher-category item)
+          (gopher-location item)))
+
 (defun gopher-goto (address)
   "Given an address, returns a list of Gopher items."
   (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 3))

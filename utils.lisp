@@ -8,6 +8,7 @@
            #:read-until
            #:tabs-to-spaces
            #:scan-character
+           #:gopher-item-to-address
            #:queue
            #:make-queue
            #:queue-front
@@ -52,6 +53,12 @@
   "Scans a string using regex and returns the first matching character."
   (aif (ppcre:scan regex string) (char string it)))
 
+(defun gopher-item-to-address (item)
+  (format nil "~A/~A~A"
+          (gopher-host item)
+          (gopher-category item)
+          (gopher-location item)))
+
 ;; Queue
 
 (defstruct queue
@@ -66,7 +73,7 @@
 
 (defun queue-push (element queue)
   "Pushes an element to the front of a queue, returning the new queue."
-  (let ((new-queue queue))
+  (let ((new-queue (copy-structure queue)))
     (if (< (length (queue-elements queue)) (queue-max-size queue))
         (asetf (queue-elements new-queue) (cons element it))
         (asetf (queue-elements new-queue) (cons element (butlast it))))
@@ -74,7 +81,7 @@
 
 (defun queue-next (queue)
   "Returns a new queue with the front element removed."
-  (let ((new-queue queue))
-    (if (cdr (queue-elements queue))
-        (asetf (queue-elements new-queue) (cdr it)))
+  (let* ((new-queue (copy-structure queue)))
+    (if (cdr (queue-elements new-queue))
+        (setf (queue-elements new-queue) (cdr (queue-elements new-queue))))
     new-queue))

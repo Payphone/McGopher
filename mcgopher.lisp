@@ -3,7 +3,8 @@
 (in-package #:mcgopher)
 
 (define-application-frame superapp ()
-  ((history :initform (make-queue :elements '("gopher.floodgap.com/1")
+  ((history :type queue
+            :initform (make-queue :elements '("gopher.floodgap.com/1")
                                   :max-size 10)
             :accessor page-history))
   (:pointer-documentation t)
@@ -32,23 +33,25 @@
 
 ;; Callbacks
 
+(defmethod (setf page-history) :after ((history queue) (new-history queue))
+  (declare (ignore history new-history))
+  (redisplay-frame-pane *application-frame*
+                        (get-frame-pane *application-frame* 'app)
+                        :force-p t))
+
 (defun address-callback (gadget)
   "Sets the address gadget value and the frame history, then refreshes the
    frame."
   (asetf (page-history *application-frame*)
-         (queue-push (gadget-value gadget) it))
-  (redisplay-frame-pane *application-frame*
-                        (get-frame-pane *application-frame* 'app)
-                        :force-p t))
+         (queue-push (gadget-value gadget) it)))
 
 (defun go-callback (gadget)
   "Calls the address-callback."
   (declare (ignore gadget))
   (address-callback (find-pane-named *application-frame* 'address)))
 
-(defun page-previous ()
-  "Moves the history back one element and updates the address, then updates the
-   frame."
+(defmethod page-previous ()
+  "Moves the history back one element and updates the address."
   (unless (string= (queue-front (page-history *application-frame*))
                    (queue-front (queue-next (page-history *application-frame*))))
     (asetf (page-history *application-frame*)
@@ -73,7 +76,7 @@
 (defun display-app (frame pane)
   "Draws Gopher items to the frame by pulling data from the current page."
   (loop for item in (gopher-goto (queue-front (page-history frame)))
-     do (updating-output (pane :unique-id item)
+     do (updating-output (pane :unique-id item :cache-value (gopher-content item))
           (display-item pane item))))
 
 ;; Commands
@@ -85,12 +88,7 @@
 (define-superapp-command com-goto ((item 'gopher-item :gesture :select))
   "Follows a Gopher item's URL."
   (let ((frame *application-frame*))
-    (asetf (page-history frame) (queue-push
-                                 (format nil "~A/~A~A"
-                                        (gopher-host item)
-                                        (gopher-category item)
-                                        (gopher-location item))
-                                 it))
+    (asetf (page-history frame) (queue-push (gopher-item-to-address item) it))
     (setf (gadget-value (find-pane-named frame 'address))
           (queue-front (page-history frame)))))
 
