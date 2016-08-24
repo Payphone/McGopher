@@ -35,6 +35,8 @@
 
 (defmethod (setf page-history) :after (history new-history)
   (declare (ignore history new-history))
+  (setf (gadget-value (find-pane-named *application-frame* 'address))
+        (queue-front (page-history *application-frame*)))
   (redisplay-frame-pane *application-frame*
                         (get-frame-pane *application-frame* 'app)
                         :force-p t))
@@ -55,9 +57,7 @@
   (unless (string= (queue-front (page-history *application-frame*))
                    (queue-front (queue-next (page-history *application-frame*))))
     (asetf (page-history *application-frame*)
-           (queue-next it))
-    (setf (gadget-value (find-pane-named *application-frame* 'address))
-          (queue-front (page-history *application-frame*)))))
+           (queue-next it))))
 
 ;; Display Functions
 
