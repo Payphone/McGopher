@@ -33,7 +33,7 @@
 
 ;; Callbacks
 
-(defmethod (setf page-history) :after ((history queue) (new-history queue))
+(defmethod (setf page-history) :after (history new-history)
   (declare (ignore history new-history))
   (redisplay-frame-pane *application-frame*
                         (get-frame-pane *application-frame* 'app)
