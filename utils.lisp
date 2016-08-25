@@ -11,6 +11,7 @@
            #:gopher-item-to-address
            #:queue
            #:make-queue
+           #:queue-elements
            #:queue-front
            #:queue-push
            #:queue-next

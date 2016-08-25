@@ -78,12 +78,18 @@
   "Exits the application."
   (frame-exit *application-frame*))
 
+(define-superapp-command (com-history :menu "History") ()
+  (let ((choice
+         (menu-choose
+          (mapc #'(lambda (url) `(,url :value ,url))
+                  (queue-elements (page-history *application-frame*))))))
+    (asetf (page-history *application-frame*)
+           (queue-push choice it))))
+
 (define-superapp-command com-goto ((item 'gopher-item :gesture :select))
   "Follows a Gopher item's URL."
-  (let ((frame *application-frame*))
-    (asetf (page-history frame) (queue-push (gopher-item-to-address item) it))
-    (setf (gadget-value (find-pane-named frame 'address))
-          (queue-front (page-history frame)))))
+  (asetf (page-history *application-frame*)
+         (queue-push (gopher-item-to-address item) it)))
 
 (define-superapp-command (com-previous :name t :keystroke (:left :meta)) ()
   "Moves the history back one item."
