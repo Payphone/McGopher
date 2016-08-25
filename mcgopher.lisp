@@ -12,14 +12,17 @@
    (back-button :push-button
                 :label "Back"
                 :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                             (page-previous)))
+                                             (com-previous)))
    (address :text-field
             :value (queue-front (page-history *application-frame*))
             :activate-callback 'address-callback
             :text-style (make-text-style :fix :roman :very-large))
    (go-button :push-button
               :label "Go"
-              :activate-callback 'go-callback)
+              :activate-callback #'(lambda (gadget) (declare (ignore gadget))
+                                           (address-callback
+                                            (find-pane-named *application-frame*
+                                                             'address))))
    (app :application
         :incremental-redisplay t
         :display-function 'display-app
@@ -34,6 +37,8 @@
 ;; Callbacks
 
 (defmethod (setf page-history) :after (history new-history)
+  "When the page history changes update the address bar and redraw the
+   application pane."
   (declare (ignore history new-history))
   (setf (gadget-value (find-pane-named *application-frame* 'address))
         (queue-front (page-history *application-frame*)))
@@ -47,24 +52,12 @@
   (asetf (page-history *application-frame*)
          (queue-push (gadget-value gadget) it)))
 
-(defun go-callback (gadget)
-  "Calls the address-callback."
-  (declare (ignore gadget))
-  (address-callback (find-pane-named *application-frame* 'address)))
-
-(defmethod page-previous ()
-  "Moves the history back one element and updates the address."
-  (unless (string= (queue-front (page-history *application-frame*))
-                   (queue-front (queue-next (page-history *application-frame*))))
-    (asetf (page-history *application-frame*)
-           (queue-next it))))
-
 ;; Display Functions
 
 (define-presentation-type gopher-item ())
 
 (defmethod display-item (pane (item gopher-item))
-  "Displays a Gopher item."
+  "Displays a Gopher item based on the category."
   (case (gopher-category item)
     (#\i (format pane "~A~%" (gopher-content item)))
     (#\3 (with-drawing-options (pane :ink +red+)
@@ -81,7 +74,7 @@
 
 ;; Commands
 
-(define-superapp-command (com-quit :menu "Quit") ()
+(define-superapp-command (com-quit :menu "Quit" :name t) ()
   "Exits the application."
   (frame-exit *application-frame*))
 
@@ -93,8 +86,10 @@
           (queue-front (page-history frame)))))
 
 (define-superapp-command (com-previous :name t :keystroke (:left :meta)) ()
-  "Moves back one page."
-  (page-previous))
+  "Moves the history back one item."
+  (if (> (queue-length (page-history *application-frame*)) 1)
+      (asetf (page-history *application-frame*)
+             (queue-next it))))
 
 ;; Main
 

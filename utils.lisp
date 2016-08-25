@@ -13,7 +13,8 @@
            #:make-queue
            #:queue-front
            #:queue-push
-           #:queue-next))
+           #:queue-next
+           #:queue-length))
 
 (in-package #:mcgopher.utils)
 
@@ -85,3 +86,7 @@
     (if (cdr (queue-elements new-queue))
         (setf (queue-elements new-queue) (cdr (queue-elements new-queue))))
     new-queue))
+
+(defun queue-length (queue)
+  "Returns the length of the queue."
+  (length (queue-elements queue)))
