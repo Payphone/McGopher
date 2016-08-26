@@ -82,9 +82,10 @@
   (let ((choice
          (menu-choose
           (mapc #'(lambda (url) `(,url :value ,url))
-                  (queue-elements (page-history *application-frame*))))))
-    (asetf (page-history *application-frame*)
-           (queue-push choice it))))
+                (queue-elements (page-history *application-frame*))))))
+    (if choice
+        (asetf (page-history *application-frame*)
+               (queue-push choice it)))))
 
 (define-superapp-command com-goto ((item 'gopher-item :gesture :select))
   "Follows a Gopher item's URL."
