@@ -83,7 +83,7 @@
          (menu-choose
           (mapc #'(lambda (url) `(,url :value ,url))
                 (queue-elements (page-history *application-frame*))))))
-    (if choice
+    (if (typep choice 'string)
         (asetf (page-history *application-frame*)
                (queue-push choice it)))))
 
