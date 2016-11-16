@@ -13,6 +13,12 @@
                 :label "Back"
                 :activate-callback #'(lambda (gadget) (declare (ignore gadget))
                                              (com-previous)))
+   (refresh :push-button
+            :label "Refresh"
+            :activate-callback #'(lambda (gadget) (declare (ignore gadget))
+                                         (redisplay-frame-pane *application-frame*
+                                                               (get-frame-pane *application-frame* 'app)
+                                                               :force-p t)))
    (address :text-field
             :value (queue-front (page-history *application-frame*))
             :activate-callback 'address-callback
@@ -30,7 +36,7 @@
    (int :interactor-pane))
   (:layouts
    (default (vertically ()
-              (1/12 (horizontally (:x-spacing 5) back-button address go-button))
+              (1/12 (horizontally (:x-spacing 5) back-button refresh address go-button))
               (10/12 app)
               (1/12 int)))))
 
@@ -51,6 +57,7 @@
    frame."
   (asetf (page-history *application-frame*)
          (queue-push (gadget-value gadget) it)))
+
 
 ;; Display Functions
 
