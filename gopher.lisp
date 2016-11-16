@@ -49,16 +49,22 @@
 
 (defun gopher-get (&key host port location category)
   "Sends a request to a gopher server returning a list of gopher items."
-  (with-connected-socket (socket (socket-connect host port :timeout 15))
-    (let ((stream (socket-stream socket)))
-      (format stream "~a~%" location)
-      (force-output stream)
-      (case category
-        (#\0 (list (make-instance 'gopher-item
-                                  :category #\i
-                                  :content (fix-formatting
-                                            (response-to-string stream)))))
-        (t (response-to-gopher-list stream))))))
+  (handler-case
+      (with-connected-socket (socket (socket-connect host port :timeout 15))
+        (let ((stream (socket-stream socket)))
+          (format stream "~a~%" location)
+          (force-output stream)
+          (case category
+            (#\0 (list (make-instance 'gopher-item
+                                      :category #\i
+                                      :content (fix-formatting
+                                                (response-to-string stream)))))
+            (#\9 ())
+            (t (response-to-gopher-list stream)))))
+    (error ()
+      (list (make-instance 'gopher-item
+                           :category #\i
+                           :content "Page not found.")))))
 
 (defun gopher-item-to-address (item)
   "Converts a Gopher item to an address"
