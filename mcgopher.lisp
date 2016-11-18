@@ -16,9 +16,7 @@
    (refresh :push-button
             :label "Refresh"
             :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                         (redisplay-frame-pane *application-frame*
-                                                               (get-frame-pane *application-frame* 'app)
-                                                               :force-p t)))
+                                         (redisplay-pane-named 'content)))
    (address :text-field
             :value (queue-front (page-history *application-frame*))
             :activate-callback 'address-callback
@@ -29,28 +27,26 @@
                                            (address-callback
                                             (find-pane-named *application-frame*
                                                              'address))))
-   (app :application
+   (content :application
         :incremental-redisplay t
         :display-function 'display-app
         :text-style (make-text-style :fix :roman :very-large))
    (int :interactor-pane))
   (:layouts
    (default (vertically ()
-              (1/12 (horizontally (:x-spacing 5) back-button refresh address go-button))
-              (10/12 app)
+              (1/12 (horizontally (:x-spacing 5)
+                      back-button refresh address go-button))
+              (10/12 content)
               (1/12 int)))))
 
 ;; Callbacks
-
 (defmethod (setf page-history) :after (history new-history)
   "When the page history changes update the address bar and redraw the
    application pane."
   (declare (ignore history new-history))
   (setf (gadget-value (find-pane-named *application-frame* 'address))
         (queue-front (page-history *application-frame*)))
-  (redisplay-frame-pane *application-frame*
-                        (get-frame-pane *application-frame* 'app)
-                        :force-p t))
+  (redisplay-pane-named 'content))
 
 (defun address-callback (gadget)
   "Sets the address gadget value and the frame history, then refreshes the
@@ -60,6 +56,12 @@
 
 
 ;; Display Functions
+
+(defun redisplay-pane-named (pane)
+  "Redisplays a pane in the application frame by name."
+  (redisplay-frame-pane *application-frame*
+                        (get-frame-pane *application-frame* pane)
+                        :force-p t))
 
 (define-presentation-type gopher-item ())
 
