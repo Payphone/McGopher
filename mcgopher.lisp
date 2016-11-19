@@ -16,15 +16,19 @@
    (refresh :push-button
             :label "Refresh"
             :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                         (redisplay-pane-named 'content)))
+                                         (redisplay-frame-pane (get-frame-pane
+                                                          *application-frame*
+                                                          'content))))
    (address :text-field
             :value (queue-front (page-history *application-frame*))
-            :activate-callback 'address-callback
+            :activate-callback #'(lambda (gadget)
+                                   (asetf (page-history *application-frame*)
+                                          (queue-push (gadget-value gadget) it)))
             :text-style (make-text-style :fix :roman :very-large))
    (go-button :push-button
               :label "Go"
               :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                           (address-callback
+                                           (activate-gadget-callback
                                             (find-pane-named *application-frame*
                                                              'address))))
    (content :application
@@ -40,28 +44,20 @@
               (1/12 int)))))
 
 ;; Callbacks
+
+(defun activate-gadget-callback (gadget)
+  (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
+
 (defmethod (setf page-history) :after (history new-history)
   "When the page history changes update the address bar and redraw the
-   application pane."
+   content pane."
   (declare (ignore history new-history))
   (setf (gadget-value (find-pane-named *application-frame* 'address))
         (queue-front (page-history *application-frame*)))
-  (redisplay-pane-named 'content))
-
-(defun address-callback (gadget)
-  "Sets the address gadget value and the frame history, then refreshes the
-   frame."
-  (asetf (page-history *application-frame*)
-         (queue-push (gadget-value gadget) it)))
-
+  (redisplay-frame-pane *application-frame*
+                        (get-frame-pane *application-frame* 'content)))
 
 ;; Display Functions
-
-(defun redisplay-pane-named (pane)
-  "Redisplays a pane in the application frame by name."
-  (redisplay-frame-pane *application-frame*
-                        (get-frame-pane *application-frame* pane)
-                        :force-p t))
 
 (define-presentation-type gopher-item ())
 
@@ -109,6 +105,6 @@
 
 ;; Main
 
-(defun app-main ()
+(defun main ()
   "Main entry point to McGopher"
   (run-frame-top-level (make-application-frame 'superapp :width 1200)))

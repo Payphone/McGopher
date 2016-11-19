@@ -21,20 +21,20 @@
    (host :initarg :host :accessor gopher-host)
    (gopher-port :initarg :port :accessor gopher-port)))
 
-(defun response-to-gopher-item (response)
+(defun stream-to-gopher-item (stream)
   "Given a stream containing a Gopher response, returns a Gopher item."
-  (if (peek-char nil response nil nil)
+  (if (peek-char nil stream nil nil)
        (make-instance 'gopher-item
-                      :category (read-char response)
-                      :content (read-until #\Tab response)
-                      :location (read-until #\Tab response)
-                      :host (read-until #\Tab response)
-                      :port (remove #\Return (read-until #\Newline response)))))
+                      :category (read-char stream)
+                      :content (read-until #\Tab stream)
+                      :location (read-until #\Tab stream)
+                      :host (read-until #\Tab stream)
+                      :port (remove #\Return (read-until #\Newline stream)))))
 
 (defun response-to-gopher-list (response)
   "Reads from a stream until it reaches the end, consing Gopher items into a
    list along the way."
-  (aif (response-to-gopher-item response)
+  (aif (stream-to-gopher-item response)
        (cons it (response-to-gopher-list response))))
 
 (defun response-to-string (response)

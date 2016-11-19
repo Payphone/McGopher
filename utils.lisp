@@ -15,7 +15,8 @@
            #:queue-front
            #:queue-push
            #:queue-next
-           #:queue-length))
+           #:queue-length
+           #:activate-gadget-callback))
 
 (in-package #:mcgopher.utils)
 
@@ -61,7 +62,7 @@
           (gopher-category item)
           (gopher-location item)))
 
-;; Queue
+;; Queues
 
 (defstruct queue
   "A structure for a queue of elements with a maximum size. If the max size is

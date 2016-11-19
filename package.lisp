@@ -6,4 +6,4 @@
         #:mcgopher.utils
         #:mcgopher.gopher)
   (:export
-   #:app-main))
+   #:main))
