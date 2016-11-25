@@ -16,9 +16,10 @@
    (refresh :push-button
             :label "Refresh"
             :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                         (redisplay-frame-pane (get-frame-pane
-                                                          *application-frame*
-                                                          'content))))
+                                         (redisplay-frame-pane
+                                          *application-frame*
+                                          (get-frame-pane *application-frame* 'content)
+                                          :force-p t)))
    (address :text-field
             :value (queue-front (page-history *application-frame*))
             :activate-callback #'(lambda (gadget)
