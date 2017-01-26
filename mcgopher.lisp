@@ -33,14 +33,14 @@
                                             (find-pane-named *application-frame*
                                                              'address))))
    (content :application
-        :incremental-redisplay t
-        :display-function 'display-app
-        :text-style (make-text-style :fix :roman :very-large))
+            :display-time :command-loop
+            :display-function 'display-app
+            :text-style (make-text-style :fix :roman :very-large))
    (int :interactor-pane))
   (:layouts
    (default (vertically ()
               (1/12 (horizontally (:x-spacing 5)
-                      back-button refresh address go-button))
+                                  back-button refresh address go-button))
               (10/12 content)
               (1/12 int)))))
 
@@ -54,9 +54,7 @@
    content pane."
   (declare (ignore history new-history))
   (setf (gadget-value (find-pane-named *application-frame* 'address))
-        (queue-front (page-history *application-frame*)))
-  (redisplay-frame-pane *application-frame*
-                        (get-frame-pane *application-frame* 'content)))
+        (queue-front (page-history *application-frame*))))
 
 ;; Display Functions
 
