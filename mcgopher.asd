@@ -3,9 +3,9 @@
 (asdf:defsystem #:mcgopher
   :description "A Gopher client"
   :author "Peyton Farrar <peyton@peytonfarrar.com>"
-  :license "LLGPL"
+  :license "MIT"
   :depends-on (#:mcclim
-               #:usocket
+               #:iolib
                #:cl-ppcre)
   :serial t
   :components ((:file "utils")

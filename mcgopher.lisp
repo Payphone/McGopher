@@ -18,7 +18,7 @@
             :activate-callback #'(lambda (gadget) (declare (ignore gadget))
                                          (redisplay-frame-pane
                                           *application-frame*
-                                          (get-frame-pane *application-frame* 'web)
+                                          (get-frame-pane *application-frame* 'app)
                                           :force-p t)))
    (address :text-field
             :value (queue-front (page-history *application-frame*))
@@ -35,7 +35,7 @@
    (app :application
         :display-time :command-loop
         :display-function 'display-app
-        :text-style (make-text-style :fix :roman :very-large))
+        :text-style (make-text-style :fix :roman :large))
    (int :interactor-pane))
   (:layouts
    (default (vertically ()
@@ -58,12 +58,25 @@
 
 ;; Display Functions
 
-(define-presentation-type plain-text ())
-(define-presentation-type information ())
-(define-presentation-type error-message ())
 (define-presentation-type directory-list ())
+(define-presentation-type plain-text ())
+(define-presentation-type directory-list ())
+(define-presentation-type cso-search-query ())
+(define-presentation-type page-error ())
+(define-presentation-type binhex-text ())
+(define-presentation-type binary-archive ())
+(define-presentation-type uuencoded-text ())
+(define-presentation-type search-query ())
+(define-presentation-type telnet-session-pointer ())
+(define-presentation-type binary-file ())
+(define-presentation-type gif-image ())
+(define-presentation-type html-file ())
+(define-presentation-type information ())
+(define-presentation-type unspecified-image ())
+(define-presentation-type audio ())
+(define-presentation-type tn3270-session-pointer ())
 
-(define-presentation-method present (object (type error-message) stream
+(define-presentation-method present (object (type page-error) stream
                                             (view textual-view) &key acceptably)
   (declare (ignorable acceptably))
   (with-drawing-options (stream :ink +red+)
@@ -121,4 +134,4 @@
 
 (defun main ()
   "Main entry point to McGopher"
-  (run-frame-top-level (make-application-frame 'superapp :width 1200)))
+  (run-frame-top-level (make-application-frame 'superapp :width 800)))

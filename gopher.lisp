@@ -2,12 +2,12 @@
 
 (defpackage #:mcgopher.gopher
   (:use #:cl
-        #:mcgopher.utils
-        #:usocket)
+        #:iolib
+        #:mcgopher.utils)
   (:export #:plain-text
            #:directory-list
            #:cso-search-query
-           #:error-message
+           #:page-error
            #:binhex-text
            #:binary-archive
            #:uuencoded-text
@@ -36,7 +36,7 @@
   '((#\0 . plain-text)
     (#\1 . directory-list)
     (#\2 . cso-search-query)
-    (#\3 . error-message)
+    (#\3 . page-error)
     (#\4 . binhex-text)
     (#\5 . binary-archive)
     (#\6 . uuencoded-text)
@@ -62,7 +62,7 @@
 (defclass plain-text             (content) ())
 (defclass directory-list         (content) ())
 (defclass cso-search-query       (content) ())
-(defclass error-message          (content) ())
+(defclass page-error             (content) ())
 (defclass binhex-text            (content) ())
 (defclass binary-archive         (content) ())
 (defclass uuencoded-text         (content) ())
@@ -78,9 +78,9 @@
 
 (defun read-item (stream)
   "Given a stream containing a Gopher response, returns a Gopher item."
-  (when (peek-char nil stream nil nil)
-    (let ((category (read-char stream)))
-      (make-instance (lookup category)
+  (let ((category (lookup (read-char stream nil nil))))
+    (when category
+      (make-instance category
                      :contents (read-until #\Tab stream)
                      :location (read-until #\Tab stream)
                      :host (read-until #\Tab stream)
@@ -104,10 +104,9 @@
 
 (defun gopher-item-to-address (item)
   "Converts a Gopher item to an address"
-  (format nil "~A/~A~A"
-          (gopher-host item)
-          (gopher-category item)
-          (gopher-location item)))
+  (format nil "~A/~A"
+          (host item)
+          (location item)))
 
 (defun gopher-goto (address &optional (port 70))
   "Given an address, returns a list of Gopher items."
@@ -115,9 +114,13 @@
          (host (first split-address))
          (location (cat "/" (third split-address))))
     (handler-case
-        (with-connected-socket (socket (socket-connect host port :timeout 15))
-          (let ((stream (socket-stream socket)))
-            (format stream "~A" location)
-            (force-output stream)
-            (read-items stream)))
-      (error () (list (make-instance 'error-message :contents "Page not found."))))))
+        (with-open-socket (socket :connect :active
+                                  :address-family :internet
+                                  :type :stream
+                                  :external-format '(:utf-8 :eol-style :crlf)
+                                  :ipv6 nil)
+          (connect socket (lookup-hostname host) :port port :wait t)
+          (format socket "~A~%" location)
+          (force-output socket)
+          (read-items socket))
+      (error () (list (make-instance 'page-error :contents "The page could not load."))))))
