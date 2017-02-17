@@ -4,67 +4,103 @@
   (:use #:cl
         #:mcgopher.utils
         #:usocket)
-  (:export #:gopher-goto
-           #:gopher-item
-           #:gopher-category
-           #:gopher-content
-           #:gopher-location
-           #:gopher-host
-           #:gopher-port))
+  (:export #:plain-text
+           #:directory-list
+           #:cso-search-query
+           #:error-message
+           #:binhex-text
+           #:binary-archive
+           #:uuencoded-text
+           #:search-query
+           #:telnet-session-pointer
+           #:binary-file
+           #:gif-image
+           #:html-file
+           #:information
+           #:unspecified-image
+           #:audio
+           #:tn3270-session-pointer
+           #:category
+           #:contents
+           #:location
+           #:host
+           #:gopher-port
+
+           #:gopher-goto))
 
 (in-package #:mcgopher.gopher)
 
-(defclass gopher-item ()
-  ((content :initarg :content :accessor gopher-content)
-   (category :initarg :category :accessor gopher-category)
-   (location :initarg :location :accessor gopher-location)
-   (host :initarg :host :accessor gopher-host)
-   (gopher-port :initarg :port :accessor gopher-port)))
+;; Gopher content types
 
-(defun stream-to-gopher-item (stream)
+(defvar *content-types*
+  '((#\0 . plain-text)
+    (#\1 . directory-list)
+    (#\2 . cso-search-query)
+    (#\3 . error-message)
+    (#\4 . binhex-text)
+    (#\5 . binary-archive)
+    (#\6 . uuencoded-text)
+    (#\7 . search-query)
+    (#\8 . telnet-session-pointer)
+    (#\9 . binary-file)
+    (#\g . gif-image)
+    (#\h . html-file)
+    (#\i . information)
+    (#\I . unspecified-image)
+    (#\s . audio)
+    (#\T . tn3270-session-pointer)))
+
+(defun lookup (type)
+  (cdr (assoc type *content-types*)))
+
+(defclass content ()
+  ((contents :initarg :contents :accessor contents)
+   (location :initarg :location :accessor location)
+   (host :initarg :host :accessor host)
+   (gopher-port :initarg :gopher-port :accessor gopher-port)))
+
+(defclass plain-text             (content) ())
+(defclass directory-list         (content) ())
+(defclass cso-search-query       (content) ())
+(defclass error-message          (content) ())
+(defclass binhex-text            (content) ())
+(defclass binary-archive         (content) ())
+(defclass uuencoded-text         (content) ())
+(defclass search-query           (content) ())
+(defclass telnet-session-pointer (content) ())
+(defclass binary-file            (content) ())
+(defclass gif-image              (content) ())
+(defclass html-file              (content) ())
+(defclass information            (content) ())
+(defclass unspecified-image      (content) ())
+(defclass audio                  (content) ())
+(defclass tn3270-session-pointer (content) ())
+
+(defun read-item (stream)
   "Given a stream containing a Gopher response, returns a Gopher item."
-  (if (peek-char nil stream nil nil)
-       (make-instance 'gopher-item
-                      :category (read-char stream)
-                      :content (read-until #\Tab stream)
-                      :location (read-until #\Tab stream)
-                      :host (read-until #\Tab stream)
-                      :port (remove #\Return (read-until #\Newline stream)))))
+  (when (peek-char nil stream nil nil)
+    (let ((category (read-char stream)))
+      (make-instance (lookup category)
+                     :contents (read-until #\Tab stream)
+                     :location (read-until #\Tab stream)
+                     :host (read-until #\Tab stream)
+                     :gopher-port (remove #\Return (read-until #\Newline stream))))))
 
-(defun response-to-gopher-list (response)
-  "Reads from a stream until it reaches the end, consing Gopher items into a
-   list along the way."
-  (aif (stream-to-gopher-item response)
-       (cons it (response-to-gopher-list response))))
+(defun read-items (stream)
+  "Reads gopher items from a stream"
+  (loop for item = (read-item stream)
+     until (null item)
+     collect item))
 
 (defun response-to-string (response)
   "Reads from a stream, returning the contents as string."
   (with-output-to-string (stream)
     (loop for line = (read-line response nil)
-       while line do (format stream "~a~%" line))))
+       while line do (format stream "~A~%" line))))
 
 (defun fix-formatting (string)
   "Removes tabs and #\Return from a string."
   (tabs-to-spaces (remove #\Return string)))
-
-(defun gopher-get (&key host port location category)
-  "Sends a request to a gopher server returning a list of gopher items."
-  (handler-case
-      (with-connected-socket (socket (socket-connect host port :timeout 15))
-        (let ((stream (socket-stream socket)))
-          (format stream "~a~%" location)
-          (force-output stream)
-          (case category
-            (#\0 (list (make-instance 'gopher-item
-                                      :category #\i
-                                      :content (fix-formatting
-                                                (response-to-string stream)))))
-            (#\9 ())
-            (t (response-to-gopher-list stream)))))
-    (error ()
-      (list (make-instance 'gopher-item
-                           :category #\i
-                           :content "Page not found.")))))
 
 (defun gopher-item-to-address (item)
   "Converts a Gopher item to an address"
@@ -73,14 +109,15 @@
           (gopher-category item)
           (gopher-location item)))
 
-(defun gopher-goto (address)
+(defun gopher-goto (address &optional (port 70))
   "Given an address, returns a list of Gopher items."
   (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 3))
          (host (first split-address))
-         (category (scan-character "[0-9ghilsT]+" (second split-address)))
-         (location (third split-address)))
-    ;; Unless otherwise specified, assume the category is a directory list
-    (gopher-get :category (aif category it #\1)
-                :host host
-                :port 70
-                :location (cat "/" location))))
+         (location (cat "/" (third split-address))))
+    (handler-case
+        (with-connected-socket (socket (socket-connect host port :timeout 15))
+          (let ((stream (socket-stream socket)))
+            (format stream "~A" location)
+            (force-output stream)
+            (read-items stream)))
+      (error () (list (make-instance 'error-message :contents "Page not found."))))))

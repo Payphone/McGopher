@@ -4,7 +4,7 @@
 
 (define-application-frame superapp ()
   ((history :type queue
-            :initform (make-queue :elements '("gopher.floodgap.com/1")
+            :initform (make-queue :elements '("gopher.floodgap.com")
                                   :max-size 10)
             :accessor page-history))
   (:pointer-documentation t)
@@ -18,7 +18,7 @@
             :activate-callback #'(lambda (gadget) (declare (ignore gadget))
                                          (redisplay-frame-pane
                                           *application-frame*
-                                          (get-frame-pane *application-frame* 'content)
+                                          (get-frame-pane *application-frame* 'web)
                                           :force-p t)))
    (address :text-field
             :value (queue-front (page-history *application-frame*))
@@ -32,16 +32,16 @@
                                            (activate-gadget-callback
                                             (find-pane-named *application-frame*
                                                              'address))))
-   (content :application
-            :display-time :command-loop
-            :display-function 'display-app
-            :text-style (make-text-style :fix :roman :very-large))
+   (app :application
+        :display-time :command-loop
+        :display-function 'display-app
+        :text-style (make-text-style :fix :roman :very-large))
    (int :interactor-pane))
   (:layouts
    (default (vertically ()
               (1/12 (horizontally (:x-spacing 5)
                                   back-button refresh address go-button))
-              (10/12 content)
+              (10/12 app)
               (1/12 int)))))
 
 ;; Callbacks
@@ -58,23 +58,38 @@
 
 ;; Display Functions
 
-(define-presentation-type gopher-item ())
+(define-presentation-type plain-text ())
+(define-presentation-type information ())
+(define-presentation-type error-message ())
+(define-presentation-type directory-list ())
 
-(defmethod display-item (pane (item gopher-item))
-  "Displays a Gopher item based on the category."
-  (case (gopher-category item)
-    (#\i (format pane "~A~%" (gopher-content item)))
-    (#\3 (with-drawing-options (pane :ink +red+)
-           (format pane "~A~%" (gopher-content item))))
-    (t (with-output-as-presentation (pane item 'gopher-item)
-         (with-text-face (pane :bold)
-           (format pane "~A~%" (gopher-content item)))))))
+(define-presentation-method present (object (type error-message) stream
+                                            (view textual-view) &key acceptably)
+  (declare (ignorable acceptably))
+  (with-drawing-options (stream :ink +red+)
+    (format stream "~A~%" (contents object))))
+
+(define-presentation-method present (object (type directory-list) stream
+                                            (view textual-view) &key acceptably)
+  (declare (ignorable acceptably))
+  (with-text-face (stream :bold)
+    (format stream "~A~%" (contents object))))
+
+(define-presentation-method present (object (type plain-text) stream
+                                            (view textual-view) &key acceptably)
+  (declare (ignorable acceptably))
+  (format stream "~A~%" (contents object)))
+
+(define-presentation-method present (object (type information) stream
+                                            (view textual-view) &key acceptably)
+  (declare (ignorable acceptably))
+  (format stream "~A~%" (contents object)))
 
 (defun display-app (frame pane)
   "Draws Gopher items to the frame by pulling data from the current page."
   (loop for item in (gopher-goto (queue-front (page-history frame)))
-     do (updating-output (pane :unique-id item :cache-value (gopher-content item))
-          (display-item pane item))))
+     do (updating-output (pane :unique-id item :cache-value (contents item))
+          (present item (presentation-type-of item) :stream pane))))
 
 ;; Commands
 
@@ -91,7 +106,7 @@
         (asetf (page-history *application-frame*)
                (queue-push choice it)))))
 
-(define-superapp-command com-goto ((item 'gopher-item :gesture :select))
+(define-superapp-command com-goto ((item 'directory-list :gesture :select))
   "Follows a Gopher item's URL."
   (asetf (page-history *application-frame*)
          (queue-push (gopher-item-to-address item) it)))
