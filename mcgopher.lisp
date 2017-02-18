@@ -12,30 +12,30 @@
    (back-button :push-button
                 :label "Back"
                 :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                             (com-previous)))
+                                       (com-previous)))
    (refresh :push-button
             :label "Refresh"
             :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                         (redisplay-frame-pane
-                                          *application-frame*
-                                          (get-frame-pane *application-frame* 'app)
-                                          :force-p t)))
+                                   (redisplay-frame-pane *application-frame*
+                                                         'app :force-p t)))
    (address :text-field
             :value (queue-front (page-history *application-frame*))
             :activate-callback #'(lambda (gadget)
                                    (asetf (page-history *application-frame*)
                                           (queue-push (gadget-value gadget) it)))
-            :text-style (make-text-style :fix :roman :very-large))
+            :text-style (make-text-style :fix :roman *font-size*))
    (go-button :push-button
               :label "Go"
               :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                           (activate-gadget-callback
-                                            (find-pane-named *application-frame*
-                                                             'address))))
+                                     (activate-gadget-callback
+                                      (find-pane-named *application-frame*
+                                                       'address))))
    (app :application
-        :display-time :command-loop
+        :incremental-redisplay t
         :display-function 'display-app
-        :text-style (make-text-style :fix :roman :large))
+        :text-style (make-text-style :fix :roman *font-size*)
+        :background *background-color*
+        :foreground *foreground-color*)
    (int :interactor-pane))
   (:layouts
    (default (vertically ()
@@ -54,7 +54,8 @@
    content pane."
   (declare (ignore history new-history))
   (setf (gadget-value (find-pane-named *application-frame* 'address))
-        (queue-front (page-history *application-frame*))))
+        (queue-front (page-history *application-frame*)))
+  (redisplay-frame-pane *application-frame* 'app))
 
 ;; Display Functions
 
@@ -98,6 +99,12 @@
   (declare (ignorable acceptably))
   (format stream "~A~%" (contents object)))
 
+(define-presentation-method present (object (type gif-image) stream
+                                            (view textual-view) &key acceptably)
+  (declare (ignore acceptably))
+  (with-text-face (stream :bold)
+    (format stream "#<GIF: ~A>~%" (contents object))))
+
 (defun display-app (frame pane)
   "Draws Gopher items to the frame by pulling data from the current page."
   (loop for item in (gopher-goto (queue-front (page-history frame)))
@@ -122,13 +129,24 @@
 (define-superapp-command com-goto ((item 'directory-list :gesture :select))
   "Follows a Gopher item's URL."
   (asetf (page-history *application-frame*)
-         (queue-push (gopher-item-to-address item) it)))
+         (queue-push (cat (host item) (location item)) it)))
 
 (define-superapp-command (com-previous :name t :keystroke (:left :meta)) ()
   "Moves the history back one item."
   (if (> (queue-length (page-history *application-frame*)) 1)
       (asetf (page-history *application-frame*)
              (queue-next it))))
+
+(define-superapp-command com-save ((image 'gif-image :gesture :select))
+  (with-slots (host location gopher-port contents) image
+    (let* ((name (with-input-from-string (in (reverse location))
+                  (escape-shell-string (reverse (read-until #\/ in))))))
+      (download (format nil "~A/~A" host location) :name name)
+      (value name))))
+
+(define-superapp-command open-file ((image 'gif-image :gesture :select))
+  (let ((path (format nil "~A/~A" *downloads-folder* (com-save image))))
+    (uiop/run-program:run-program (format nil "~A ~A" "feh" path))))
 
 ;; Main
 

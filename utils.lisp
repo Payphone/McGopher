@@ -1,66 +1,20 @@
 (defpackage #:mcgopher.utils
   (:use #:cl
-        #:cl-ppcre)
-  (:export #:aif
-           #:asetf
-           #:it
-           #:cat
-           #:read-until
-           #:tabs-to-spaces
-           #:scan-character
-           #:gopher-item-to-address
+        #:peyton-utils)
+  (:export #:tabs-to-spaces
            #:queue
            #:make-queue
            #:queue-elements
            #:queue-front
            #:queue-push
            #:queue-next
-           #:queue-length
-           #:activate-gadget-callback))
+           #:queue-length))
 
 (in-package #:mcgopher.utils)
-
-;; Macros
-
-(defmacro aif (test then &optional else)
-  "Anaphoric if, allows 'it' to be used in the body."
-  `(let ((it ,test))
-     (if it ,then ,else)))
-
-(defmacro asetf (value new-value)
-  "Similar to setf, except it only takes a single pair and binds the symbol
-   value to 'it'."
-  `(let ((it ,value))
-     (setf ,value ,new-value)))
-
-(defmacro cat (&rest strings)
-  "Concatenates strings"
-  `(concatenate 'string ,@strings))
-
-;; Miscellaneous Functions
-
-(defun read-until (separator stream &optional output)
-  "Reads from a stream until it reaches the separator character, then returns
-   the collected characters as a string."
-  (let ((character (read-char stream nil nil)))
-    (if (or (not character) (char= separator character))
-        (coerce (reverse output) 'string)
-        (read-until separator stream
-                    (cons character output)))))
 
 (defun tabs-to-spaces (string)
   "Converts all tabs to four spaces in a string."
   (ppcre:regex-replace-all #\Tab string "    "))
-
-(defun scan-character (regex string)
-  "Scans a string using regex and returns the first matching character."
-  (aif (ppcre:scan regex string) (char string it)))
-
-(defun gopher-item-to-address (item)
-  (format nil "~A/~A~A"
-          (gopher-host item)
-          (gopher-category item)
-          (gopher-location item)))
 
 ;; Queues
 

@@ -13,5 +13,5 @@ git clone https://github.com/Peytonien/McGopher
 Then from your lisp implementation run
 ```
 (ql:quickload :mcgopher)
-(mcgopher:app-main)
+(mcgopher:main)
 ```

@@ -3,6 +3,9 @@
 (defpackage #:mcgopher.gopher
   (:use #:cl
         #:iolib
+        :files-and-folders
+        :peyton-utils
+        #:mcgopher.config
         #:mcgopher.utils)
   (:export #:plain-text
            #:directory-list
@@ -26,7 +29,8 @@
            #:host
            #:gopher-port
 
-           #:gopher-goto))
+           #:gopher-goto
+           #:download))
 
 (in-package #:mcgopher.gopher)
 
@@ -51,6 +55,7 @@
     (#\T . tn3270-session-pointer)))
 
 (defun lookup (type)
+  "Find the associated content type."
   (cdr (assoc type *content-types*)))
 
 (defclass content ()
@@ -77,14 +82,15 @@
 (defclass tn3270-session-pointer (content) ())
 
 (defun read-item (stream)
-  "Given a stream containing a Gopher response, returns a Gopher item."
-  (let ((category (lookup (read-char stream nil nil))))
+  "Given a stream from a Gopher server, attempts to read a Gopher item."
+  (let ((category (lookup (read-char stream nil))))
     (when category
       (make-instance category
-                     :contents (read-until #\Tab stream)
+                     :contents (aif (read-until #\Tab stream) it "")
                      :location (read-until #\Tab stream)
                      :host (read-until #\Tab stream)
-                     :gopher-port (remove #\Return (read-until #\Newline stream))))))
+                     :gopher-port (remove #\Return
+                                          (read-until #\Newline stream))))))
 
 (defun read-items (stream)
   "Reads gopher items from a stream"
@@ -92,27 +98,15 @@
      until (null item)
      collect item))
 
-(defun response-to-string (response)
-  "Reads from a stream, returning the contents as string."
-  (with-output-to-string (stream)
-    (loop for line = (read-line response nil)
-       while line do (format stream "~A~%" line))))
-
 (defun fix-formatting (string)
   "Removes tabs and #\Return from a string."
   (tabs-to-spaces (remove #\Return string)))
 
-(defun gopher-item-to-address (item)
-  "Converts a Gopher item to an address"
-  (format nil "~A/~A"
-          (host item)
-          (location item)))
-
 (defun gopher-goto (address &optional (port 70))
   "Given an address, returns a list of Gopher items."
-  (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 3))
+  (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 2))
          (host (first split-address))
-         (location (cat "/" (third split-address))))
+         (location (second split-address)))
     (handler-case
         (with-open-socket (socket :connect :active
                                   :address-family :internet
@@ -120,7 +114,29 @@
                                   :external-format '(:utf-8 :eol-style :crlf)
                                   :ipv6 nil)
           (connect socket (lookup-hostname host) :port port :wait t)
-          (format socket "~A~%" location)
+          (format socket "/~A~%" (or location "/"))
           (force-output socket)
           (read-items socket))
-      (error () (list (make-instance 'page-error :contents "The page could not load."))))))
+      (error () (list (make-instance 'page-error :contents
+                                     "Unable to load page."))))))
+
+(defun download (address &key name (port 70))
+  (when address
+    (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 2))
+           (host (first split-address))
+           (location (second split-address)))
+      (with-open-socket (socket :connect :active
+                                :address-family :internet
+                                :external-format '(:utf-8 :eol-style :crlf)
+                                :type :stream
+                                :ipv6 nil)
+        (connect socket (lookup-hostname host) :port port :wait t)
+        (format socket "~A~%" location)
+        (force-output socket)
+        (with-open-file (out (merge-paths *downloads-folder* name)
+                             :direction :output
+                             :if-exists :supersede
+                             :element-type '(unsigned-byte 8))
+          (loop for byte = (read-byte socket nil)
+             until (null byte) do
+               (write-byte byte out)))))))

@@ -6,9 +6,12 @@
   :license "MIT"
   :depends-on (#:mcclim
                #:iolib
+               #:files-and-folders
+               #:peyton-utils
                #:cl-ppcre)
   :serial t
-  :components ((:file "utils")
+  :components ((:file "config")
+               (:file "utils")
                (:file "gopher")
                (:file "package")
                (:file "mcgopher")))
