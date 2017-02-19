@@ -5,16 +5,25 @@
   (:export #:*downloads-folder*
            #:*font-size*
            #:*background-color*
-           #:*foreground-color*))
+           #:*foreground-color*
+           #:*key-previous*
+           #:*key-quit*
+           #:*external-programs*))
 
 (in-package #:mcgopher.config)
 
-(defvar *downloads-folder* #P"~/Downloads")
+;; Appearance
 (defvar *font-size* :large)
 (defvar *background-color* +white+)
 (defvar *foreground-color* +black+)
+
+;; Keybindings
+(defvar *key-previous* `(:left :meta))
+(defvar *key-quit* `(#\q :control))
+
+;; Misc
+(defvar *downloads-folder* #P"~/Downloads")
 (defvar *external-programs*
-  '((gif . "feh")
-    (wav . "mpv")
-    (html . "firefox")
-    ()))
+  '((gif-image         . "feh")
+    (unspecified-image . "feh")
+    (audio             . "mpv --no-video")))

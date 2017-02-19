@@ -35,14 +35,12 @@
         :display-function 'display-app
         :text-style (make-text-style :fix :roman *font-size*)
         :background *background-color*
-        :foreground *foreground-color*)
-   (int :interactor-pane))
+        :foreground *foreground-color*))
   (:layouts
    (default (vertically ()
               (1/12 (horizontally (:x-spacing 5)
                                   back-button refresh address go-button))
-              (10/12 app)
-              (1/12 int)))))
+              (10/12 app)))))
 
 ;; Callbacks
 
@@ -58,22 +56,25 @@
   (redisplay-frame-pane *application-frame* 'app))
 
 ;; Display Functions
+
+;; Create presentation types from gopher content types and define the default
+;; present method.
 #.`(progn
      ,@(loop for item in *content-types*
           for class = (cdr item)
-          collect `(define-presentation-type ,class ())))
-
+          collect `(define-presentation-type ,class ())
+          collect `(define-presentation-method present
+                       (object (type ,class) stream (view textual-view)
+                               &key acceptably)
+                     (declare (ignore acceptably))
+                     (with-text-face (stream :bold)
+                       (format stream "#<~A: ~A>~%" ',class (contents object))))))
 
 (define-presentation-method present (object (type directory-list) stream
                                             (view textual-view) &key acceptably)
   (declare (ignorable acceptably))
   (with-text-face (stream :bold)
     (format stream "~A~%" (contents object))))
-
-(define-presentation-method present (object (type plain-text) stream
-                                            (view textual-view) &key acceptably)
-  (declare (ignorable acceptably))
-  (format stream "~A~%" (contents object)))
 
 (define-presentation-method present (object (type information) stream
                                             (view textual-view) &key acceptably)
@@ -88,7 +89,8 @@
 
 ;; Commands
 
-(define-superapp-command (com-quit :menu "Quit" :name t) ()
+(define-superapp-command (com-quit :menu "Quit" :name t :keystroke #.*key-quit*)
+    ()
   "Exits the application."
   (frame-exit *application-frame*))
 
@@ -106,7 +108,7 @@
   (asetf (page-history *application-frame*)
          (queue-push (cat (host item) (location item)) it)))
 
-(define-superapp-command (com-previous :name t :keystroke (:left :meta)) ()
+(define-superapp-command (com-previous :name t :keystroke #.*key-previous*) ()
   "Moves the history back one item."
   (if (> (queue-length (page-history *application-frame*)) 1)
       (asetf (page-history *application-frame*)
@@ -118,6 +120,18 @@
                   (escape-shell-string (reverse (read-until #\/ in))))))
       (download (format nil "~A/~A" host location) :name name)
       (value name))))
+
+#.`(progn
+     ,@(loop for item in *external-programs*
+        for class = (symb (car item))
+          for program = (cdr item)
+          collect `(define-superapp-command open-file ((object ',class
+                                                               :gesture :select))
+                     (let ((path (format nil "~A/~A" *downloads-folder*
+                                         (com-save object))))
+                       (uiop/run-program:run-program
+                        (format nil "~A ~A" ,program
+                                path))))))
 
 (define-superapp-command open-file ((image 'gif-image :gesture :select))
   (let ((path (format nil "~A/~A" *downloads-folder* (com-save image))))

@@ -61,14 +61,10 @@
    (host :initarg :host :accessor host)
    (gopher-port :initarg :gopher-port :accessor gopher-port)))
 
-;; Not for the weak of heart!
-#.`(progn
-     ,@(loop for item in *content-types*
-          for class = (cdr item)
-          collect `(defclass ,class (content) ())
-          collect `(defmethod print-object ((object ,class) stream)
-                     (print-unreadable-object (object stream :type t :identity t)
-                       (princ (contents object))))))
+(eval `(progn
+         ,@(loop for item in *content-types*
+              for class = (cdr item)
+              collect `(defclass ,class (content) ()))))
 
 (defun lookup (type)
   "Find the associated content type."
@@ -126,7 +122,7 @@
         (connect socket (lookup-hostname host) :port port :wait t)
         (format socket "~A~%" location)
         (force-output socket)
-        (with-open-file (out (merge-paths *downloads-folder* name)
+        (with-open-file (out (merge-paths *downloads-folder* (or name "untitled"))
                              :direction :output
                              :if-exists :supersede
                              :element-type '(unsigned-byte 8))
