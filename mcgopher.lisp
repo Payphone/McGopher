@@ -59,16 +59,21 @@
 
 ;; Create presentation types from gopher content types and define the default
 ;; present method.
-#.`(progn
-     ,@(loop for item in *content-types*
-          for class = (cdr item)
-          collect `(define-presentation-type ,class ())
-          collect `(define-presentation-method present
-                       (object (type ,class) stream (view textual-view)
-                               &key acceptably)
-                     (declare (ignore acceptably))
-                     (with-text-face (stream :bold)
-                       (format stream "#<~A: ~A>~%" ',class (contents object))))))
+
+(macrolet
+    ((generate-presentations ()
+       `(progn
+          ,@(loop for item in *content-types*
+               for class = (cdr item)
+               collect `(define-presentation-type ,class ())
+               collect `(define-presentation-method present
+                            (object (type ,class) stream (view textual-view)
+                                    &key acceptably)
+                          (declare (ignore acceptably))
+                          (with-text-face (stream :bold)
+                            (format stream "#<~A: ~A>~%" ',class
+                                    (contents object))))))))
+  (generate-presentations))
 
 (define-presentation-method present (object (type directory-list) stream
                                             (view textual-view) &key acceptably)
@@ -121,17 +126,19 @@
       (download (format nil "~A/~A" host location) :name name)
       (value name))))
 
-#.`(progn
-     ,@(loop for item in *external-programs*
-        for class = (symb (car item))
-          for program = (cdr item)
-          collect `(define-superapp-command open-file ((object ',class
-                                                               :gesture :select))
-                     (let ((path (format nil "~A/~A" *downloads-folder*
-                                         (com-save object))))
-                       (uiop/run-program:run-program
-                        (format nil "~A ~A" ,program
-                                path))))))
+(macrolet ((generate-open-commands ()
+             `(progn
+                ,@(loop for item in *external-programs*
+                     for class = (symb (car item))
+                     for program = (cdr item)
+                     collect `(define-superapp-command open-file
+                                  ((object ',class :gesture :select))
+                                (let ((path (format nil "~A/~A"
+                                                    *download-folder*
+                                                    (com-save object))))
+                                  (uiop/run-program:run-program
+                                   (format nil "~A ~A" ,program path))))))))
+  (generate-open-commands))
 
 (define-superapp-command open-file ((image 'gif-image :gesture :select))
   (let ((path (format nil "~A/~A" *downloads-folder* (com-save image))))

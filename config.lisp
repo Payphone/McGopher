@@ -2,7 +2,7 @@
 
 (defpackage #:mcgopher.config
   (:use #:clim #:clim-lisp)
-  (:export #:*downloads-folder*
+  (:export #:*download-folder*
            #:*font-size*
            #:*background-color*
            #:*foreground-color*
@@ -22,7 +22,7 @@
 (defvar *key-quit* `(#\q :control))
 
 ;; Misc
-(defvar *downloads-folder* #P"~/Downloads")
+(defvar *download-folder* #P"~/Downloads")
 (defvar *external-programs*
   '((gif-image         . "feh")
     (unspecified-image . "feh")

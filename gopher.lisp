@@ -37,34 +37,36 @@
 
 ;; Gopher content types
 
-(defvar *content-types*
-  '((#\0 . plain-text)
-    (#\1 . directory-list)
-    (#\2 . cso-search-query)
-    (#\3 . page-error)
-    (#\4 . binhex-text)
-    (#\5 . binary-archive)
-    (#\6 . uuencoded-text)
-    (#\7 . search-query)
-    (#\8 . telnet-session-pointer)
-    (#\9 . binary-file)
-    (#\g . gif-image)
-    (#\h . html-file)
-    (#\i . information)
-    (#\I . unspecified-image)
-    (#\s . audio)
-    (#\T . tn3270-session-pointer)))
+(macrolet
+    ((generate-classes ()
+       `(progn
+          ,@(loop for item in *content-types*
+               for class = (cdr item)
+               collect `(defclass ,class (content) ())))))
+  (defvar *content-types*
+    '((#\0 . plain-text)
+      (#\1 . directory-list)
+      (#\2 . cso-search-query)
+      (#\3 . page-error)
+      (#\4 . binhex-text)
+      (#\5 . binary-archive)
+      (#\6 . uuencoded-text)
+      (#\7 . search-query)
+      (#\8 . telnet-session-pointer)
+      (#\9 . binary-file)
+      (#\g . gif-image)
+      (#\h . html-file)
+      (#\i . information)
+      (#\I . unspecified-image)
+      (#\s . audio)
+      (#\T . tn3270-session-pointer)))
+  (generate-classes))
 
 (defclass content ()
   ((contents :initarg :contents :accessor contents :initform nil)
    (location :initarg :location :accessor location)
    (host :initarg :host :accessor host)
    (gopher-port :initarg :gopher-port :accessor gopher-port)))
-
-(eval `(progn
-         ,@(loop for item in *content-types*
-              for class = (cdr item)
-              collect `(defclass ,class (content) ()))))
 
 (defun lookup (type)
   "Find the associated content type."
