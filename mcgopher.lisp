@@ -58,30 +58,11 @@
   (redisplay-frame-pane *application-frame* 'app))
 
 ;; Display Functions
+#.`(progn
+     ,@(loop for item in *content-types*
+          for class = (cdr item)
+          collect `(define-presentation-type ,class ())))
 
-(define-presentation-type directory-list ())
-(define-presentation-type plain-text ())
-(define-presentation-type directory-list ())
-(define-presentation-type cso-search-query ())
-(define-presentation-type page-error ())
-(define-presentation-type binhex-text ())
-(define-presentation-type binary-archive ())
-(define-presentation-type uuencoded-text ())
-(define-presentation-type search-query ())
-(define-presentation-type telnet-session-pointer ())
-(define-presentation-type binary-file ())
-(define-presentation-type gif-image ())
-(define-presentation-type html-file ())
-(define-presentation-type information ())
-(define-presentation-type unspecified-image ())
-(define-presentation-type audio ())
-(define-presentation-type tn3270-session-pointer ())
-
-(define-presentation-method present (object (type page-error) stream
-                                            (view textual-view) &key acceptably)
-  (declare (ignorable acceptably))
-  (with-drawing-options (stream :ink +red+)
-    (format stream "~A~%" (contents object))))
 
 (define-presentation-method present (object (type directory-list) stream
                                             (view textual-view) &key acceptably)
@@ -98,12 +79,6 @@
                                             (view textual-view) &key acceptably)
   (declare (ignorable acceptably))
   (format stream "~A~%" (contents object)))
-
-(define-presentation-method present (object (type gif-image) stream
-                                            (view textual-view) &key acceptably)
-  (declare (ignore acceptably))
-  (with-text-face (stream :bold)
-    (format stream "#<GIF: ~A>~%" (contents object))))
 
 (defun display-app (frame pane)
   "Draws Gopher items to the frame by pulling data from the current page."

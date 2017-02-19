@@ -13,3 +13,8 @@
 (defvar *font-size* :large)
 (defvar *background-color* +white+)
 (defvar *foreground-color* +black+)
+(defvar *external-programs*
+  '((gif . "feh")
+    (wav . "mpv")
+    (html . "firefox")
+    ()))

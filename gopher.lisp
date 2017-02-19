@@ -7,7 +7,8 @@
         :peyton-utils
         #:mcgopher.config
         #:mcgopher.utils)
-  (:export #:plain-text
+  (:export #:*content-types*
+           #:plain-text
            #:directory-list
            #:cso-search-query
            #:page-error
@@ -54,32 +55,24 @@
     (#\s . audio)
     (#\T . tn3270-session-pointer)))
 
-(defun lookup (type)
-  "Find the associated content type."
-  (cdr (assoc type *content-types*)))
-
 (defclass content ()
-  ((contents :initarg :contents :accessor contents)
+  ((contents :initarg :contents :accessor contents :initform nil)
    (location :initarg :location :accessor location)
    (host :initarg :host :accessor host)
    (gopher-port :initarg :gopher-port :accessor gopher-port)))
 
-(defclass plain-text             (content) ())
-(defclass directory-list         (content) ())
-(defclass cso-search-query       (content) ())
-(defclass page-error             (content) ())
-(defclass binhex-text            (content) ())
-(defclass binary-archive         (content) ())
-(defclass uuencoded-text         (content) ())
-(defclass search-query           (content) ())
-(defclass telnet-session-pointer (content) ())
-(defclass binary-file            (content) ())
-(defclass gif-image              (content) ())
-(defclass html-file              (content) ())
-(defclass information            (content) ())
-(defclass unspecified-image      (content) ())
-(defclass audio                  (content) ())
-(defclass tn3270-session-pointer (content) ())
+;; Not for the weak of heart!
+#.`(progn
+     ,@(loop for item in *content-types*
+          for class = (cdr item)
+          collect `(defclass ,class (content) ())
+          collect `(defmethod print-object ((object ,class) stream)
+                     (print-unreadable-object (object stream :type t :identity t)
+                       (princ (contents object))))))
+
+(defun lookup (type)
+  "Find the associated content type."
+  (cdr (assoc type *content-types*)))
 
 (defun read-item (stream)
   "Given a stream from a Gopher server, attempts to read a Gopher item."
