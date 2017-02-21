@@ -7,7 +7,11 @@
         :peyton-utils
         #:mcgopher.config
         #:mcgopher.utils)
-  (:export #:*content-types*
+  (:export #:contents
+           #:location
+           #:host
+           #:gopher-port
+
            #:plain-text
            #:directory-list
            #:cso-search-query
@@ -24,11 +28,6 @@
            #:unspecified-image
            #:audio
            #:tn3270-session-pointer
-           #:category
-           #:contents
-           #:location
-           #:host
-           #:gopher-port
 
            #:gopher-goto
            #:download))
@@ -37,40 +36,22 @@
 
 ;; Gopher content types
 
-(macrolet
-    ((generate-classes ()
-       `(progn
-          ,@(loop for item in *content-types*
-               for class = (cdr item)
-               collect `(defclass ,class (content) ())))))
-  (defvar *content-types*
-    '((#\0 . plain-text)
-      (#\1 . directory-list)
-      (#\2 . cso-search-query)
-      (#\3 . page-error)
-      (#\4 . binhex-text)
-      (#\5 . binary-archive)
-      (#\6 . uuencoded-text)
-      (#\7 . search-query)
-      (#\8 . telnet-session-pointer)
-      (#\9 . binary-file)
-      (#\g . gif-image)
-      (#\h . html-file)
-      (#\i . information)
-      (#\I . unspecified-image)
-      (#\s . audio)
-      (#\T . tn3270-session-pointer)))
-  (generate-classes))
-
 (defclass content ()
   ((contents :initarg :contents :accessor contents :initform nil)
    (location :initarg :location :accessor location)
    (host :initarg :host :accessor host)
    (gopher-port :initarg :gopher-port :accessor gopher-port)))
 
+(macrolet ((generate-content-classes ()
+             `(progn
+                ,@(loop for item in *content-types*
+                        for class = (symb (cdr item))
+                        collect `(defclass ,class (content) ())))))
+  (generate-content-classes))
+
 (defun lookup (type)
   "Find the associated content type."
-  (cdr (assoc type *content-types*)))
+  (intern (string (cdr (assoc type *content-types*))) :mcgopher.gopher))
 
 (defun read-item (stream)
   "Given a stream from a Gopher server, attempts to read a Gopher item."
@@ -124,10 +105,11 @@
         (connect socket (lookup-hostname host) :port port :wait t)
         (format socket "~A~%" location)
         (force-output socket)
-        (with-open-file (out (merge-paths *downloads-folder* (or name "untitled"))
+        (with-open-file (out (merge-paths *download-folder* (or name "untitled"))
                              :direction :output
                              :if-exists :supersede
                              :element-type '(unsigned-byte 8))
           (loop for byte = (read-byte socket nil)
              until (null byte) do
-               (write-byte byte out)))))))
+               (write-byte byte out)))
+        (value name)))))

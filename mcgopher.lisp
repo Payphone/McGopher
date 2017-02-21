@@ -61,11 +61,10 @@
 ;; present method.
 
 (macrolet
-    ((generate-presentations ()
+    ((generate-present-methods ()
        `(progn
           ,@(loop for item in *content-types*
-               for class = (cdr item)
-               collect `(define-presentation-type ,class ())
+               for class = (symb (cdr item))
                collect `(define-presentation-method present
                             (object (type ,class) stream (view textual-view)
                                     &key acceptably)
@@ -73,7 +72,8 @@
                           (with-text-face (stream :bold)
                             (format stream "#<~A: ~A>~%" ',class
                                     (contents object))))))))
-  (generate-presentations))
+
+  (generate-present-methods))
 
 (define-presentation-method present (object (type directory-list) stream
                                             (view textual-view) &key acceptably)
@@ -94,8 +94,8 @@
 
 ;; Commands
 
-(define-superapp-command (com-quit :menu "Quit" :name t :keystroke #.*key-quit*)
-    ()
+(define-superapp-command (com-quit :menu "Quit" :name t
+                                   :keystroke (#\q :control)) ()
   "Exits the application."
   (frame-exit *application-frame*))
 
@@ -111,38 +111,13 @@
 (define-superapp-command com-goto ((item 'directory-list :gesture :select))
   "Follows a Gopher item's URL."
   (asetf (page-history *application-frame*)
-         (queue-push (cat (host item) (location item)) it)))
+         (queue-push (mkstr (host item) (location item)) it)))
 
-(define-superapp-command (com-previous :name t :keystroke #.*key-previous*) ()
+(define-superapp-command (com-previous :name t :keystroke (:left :meta)) ()
   "Moves the history back one item."
   (if (> (queue-length (page-history *application-frame*)) 1)
       (asetf (page-history *application-frame*)
              (queue-next it))))
-
-(define-superapp-command com-save ((image 'gif-image :gesture :select))
-  (with-slots (host location gopher-port contents) image
-    (let* ((name (with-input-from-string (in (reverse location))
-                  (escape-shell-string (reverse (read-until #\/ in))))))
-      (download (format nil "~A/~A" host location) :name name)
-      (value name))))
-
-(macrolet ((generate-open-commands ()
-             `(progn
-                ,@(loop for item in *external-programs*
-                     for class = (symb (car item))
-                     for program = (cdr item)
-                     collect `(define-superapp-command open-file
-                                  ((object ',class :gesture :select))
-                                (let ((path (format nil "~A/~A"
-                                                    *download-folder*
-                                                    (com-save object))))
-                                  (uiop/run-program:run-program
-                                   (format nil "~A ~A" ,program path))))))))
-  (generate-open-commands))
-
-(define-superapp-command open-file ((image 'gif-image :gesture :select))
-  (let ((path (format nil "~A/~A" *downloads-folder* (com-save image))))
-    (uiop/run-program:run-program (format nil "~A ~A" "feh" path))))
 
 ;; Main
 
