@@ -1,6 +1,17 @@
 ;;;; mcgopher.lisp
 
-(in-package #:mcgopher)
+(defpackage #:mcgopher.gui
+  (:use #:clim
+        #:clim-lisp
+        #:peyton-utils
+        #:files-and-folders
+        #:mcgopher.config
+        #:mcgopher.utils
+        #:mcgopher.gopher)
+  (:export
+   #:main))
+
+(in-package #:mcgopher.gui)
 
 (define-application-frame mcgopher ()
   ((history :type queue

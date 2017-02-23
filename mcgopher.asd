@@ -14,5 +14,5 @@
   :components ((:file "config")
                (:file "utils")
                (:file "gopher")
-               (:file "package")
-               (:file "mcgopher")))
+               (:file "gui")
+               (:file "package")))
