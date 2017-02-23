@@ -65,7 +65,7 @@
   (let ((category (lookup (read-char stream nil))))
     (when category
       (make-instance category
-                     :contents (aif (read-until #\Tab stream) it "")
+                     :contents (or (read-until #\Tab stream) "")
                      :location (read-until #\Tab stream)
                      :host (read-until #\Tab stream)
                      :gopher-port (remove #\Return
@@ -145,4 +145,4 @@
     (with-address-socket socket address
       (write-byte-vector-into-file (read-stream-content-into-byte-vector socket)
                                    path :if-exists :supersede))
-    (value path)))
+    (values path)))

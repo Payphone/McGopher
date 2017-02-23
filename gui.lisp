@@ -166,8 +166,8 @@
                      for class = (car item)
                      for program = (cdr item)
                      collect
-                       `(define-mcgopher-command ,(symb 'com-open- class)
-                            ((object ',(symb class) :gesture :select))
+                       `(define-mcgopher-command ,(symbolicate 'com-open- class)
+                            ((object ',(symbolicate class) :gesture :select))
                           (let ((path (download (content-address object))))
                             (uiop/run-program:run-program
                              (format nil "~A ~A" ,program path))
