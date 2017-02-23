@@ -8,6 +8,8 @@
         #:mcgopher.config
         #:mcgopher.utils
         #:mcgopher.gopher)
+  (:import-from :alexandria
+                :symbolicate)
   (:export
    #:main))
 
@@ -77,7 +79,7 @@
        to #<TYPE: CONTENT>."
        `(progn
           ,@(loop for item in *content-types*
-               for class = (symb (cdr item))
+               for class = (symbolicate (cdr item))
                collect `(define-presentation-method present
                             (object (type ,class) stream (view textual-view)
                                     &key acceptably)
@@ -151,8 +153,9 @@
              `(progn
                 ,@(loop for class in *downloadable-types*
                      collect
-                       `(define-mcgopher-command ,(symb 'com-download- class)
-                            ((object ',(symb class) :gesture :edit))
+                       `(define-mcgopher-command ,(symbolicate 'com-download-
+                                                               class)
+                            ((object ',(symbolicate class) :gesture :edit))
                           (download (content-address object)))))))
   (generate-download-commands))
 

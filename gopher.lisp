@@ -52,7 +52,7 @@
              "Create content classes from *content-types*."
              `(progn
                 ,@(loop for item in *content-types*
-                        for class = (symb (cdr item))
+                        for class = (symbolicate (cdr item))
                         collect `(defclass ,class (content) ())))))
   (generate-content-classes))
 
@@ -140,7 +140,7 @@
                                                        (cdr split-address))))))
 
 (defun download (address &optional file-name)
-  (let* ((name (or file-name (last1 (ppcre:split "[^a-zA-Z0-9_\\-.]" address))))
+  (let* ((name (or file-name (lastcar (ppcre:split "[^a-zA-Z0-9_\\-.]" address))))
          (path (merge-paths *download-folder* name)))
     (with-address-socket socket address
       (write-byte-vector-into-file (read-stream-content-into-byte-vector socket)
