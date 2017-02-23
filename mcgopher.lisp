@@ -143,11 +143,10 @@
              doesn't support generic commands, each one has to be named
              different."
              `(progn
-                ,@(loop for item in *content-types*
-                     for class = (symb (cdr item))
+                ,@(loop for class in *downloadable-types*
                      collect
                        `(define-mcgopher-command ,(symb 'com-download- class)
-                            ((object ',class :gesture :edit))
+                            ((object ',(symb class) :gesture :edit))
                           (download (content-address object)))))))
   (generate-download-commands))
 

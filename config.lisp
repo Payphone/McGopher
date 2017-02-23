@@ -3,6 +3,7 @@
 (defpackage #:mcgopher.config
   (:use #:clim #:clim-lisp)
   (:export #:*content-types*
+           #:*downloadable-types*
            #:*download-folder*
            #:*font-size*
            #:*background-color*
@@ -31,6 +32,9 @@
     (#\I . unspecified-image)
     (#\s . audio)
     (#\T . tn3270-session-pointer)))
+
+(defconstant *downloadable-types*
+  '(binary-archive binary-file gif-image unspecified-image audio))
 
 ;; Appearance
 (defvar *font-size* :large)

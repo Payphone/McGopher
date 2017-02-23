@@ -139,8 +139,10 @@
                                                        (cdr split-address))))))
 
 (defun download (address &optional name)
-  (with-address-socket socket address
-    (write-byte-vector-into-file (read-stream-content-into-byte-vector socket)
-                                 (merge-paths *download-folder*
-                                              (or name "untitled"))))
+  (let ((name (or name (last1 (ppcre:split "[^a-zA-Z0-9_\\-.]" address)))))
+    (with-address-socket socket address
+      (write-byte-vector-into-file (read-stream-content-into-byte-vector socket)
+                                   (merge-paths *download-folder*
+                                                (or name "untitled"))
+                                   :if-exists :supersede)))
   (value (or name "untitled")))
