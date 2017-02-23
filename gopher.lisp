@@ -138,11 +138,10 @@
                                      :location (format nil "~{~A~^ ~}"
                                                        (cdr split-address))))))
 
-(defun download (address &optional name)
-  (let ((name (or name (last1 (ppcre:split "[^a-zA-Z0-9_\\-.]" address)))))
+(defun download (address &optional file-name)
+  (let* ((name (or file-name (last1 (ppcre:split "[^a-zA-Z0-9_\\-.]" address))))
+         (path (merge-paths *download-folder* name)))
     (with-address-socket socket address
       (write-byte-vector-into-file (read-stream-content-into-byte-vector socket)
-                                   (merge-paths *download-folder*
-                                                (or name "untitled"))
-                                   :if-exists :supersede)))
-  (value (or name "untitled")))
+                                   path :if-exists :supersede))
+    (value path)))

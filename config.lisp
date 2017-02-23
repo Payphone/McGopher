@@ -15,6 +15,7 @@
 (in-package #:mcgopher.config)
 
 ;; Gopher Content Types
+
 (defconstant *content-types*
   '((#\0 . plain-text)
     (#\1 . directory-list)
@@ -34,7 +35,12 @@
     (#\T . tn3270-session-pointer)))
 
 (defconstant *downloadable-types*
-  '(binary-archive binary-file gif-image unspecified-image audio))
+  '(plain-text binary-archive binary-file gif-image unspecified-image audio))
+
+(defconstant *external-programs*
+  '((gif               . "feh")
+    (unspecified-image . "feh")
+    (audio             . "mpv")))
 
 ;; Appearance
 (defvar *font-size* :large)

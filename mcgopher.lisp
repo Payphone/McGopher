@@ -150,6 +150,21 @@
                           (download (content-address object)))))))
   (generate-download-commands))
 
+(macrolet ((generate-external-commands ()
+             "Creates commands for opening content types in external programs."
+             `(progn
+                ,@(loop for item in *external-programs*
+                     for class = (symb (car item))
+                     for program = (cdr item)
+                     collect
+                       `(define-mcgopher-command ,(symb 'com-open- class)
+                            ((object ',class :gesture :select))
+                          (let ((path (download (content-address object))))
+                            (uiop/run-program:run-program
+                             (format nil "~A ~A" ,program path))
+                            (uiop/filesystem:delete-file-if-exists path)))))))
+  (generate-external-commands))
+
 ;; Main
 
 (defun main ()
