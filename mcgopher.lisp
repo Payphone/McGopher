@@ -138,6 +138,19 @@
       (asetf (page-history *application-frame*)
              (queue-next it))))
 
+(macrolet ((generate-download-commands ()
+             "Creates commands to download gopher content types. Since CLIM
+             doesn't support generic commands, each one has to be named
+             different."
+             `(progn
+                ,@(loop for item in *content-types*
+                     for class = (symb (cdr item))
+                     collect
+                       `(define-mcgopher-command ,(symb 'com-download- class)
+                            ((object ',class :gesture :edit))
+                          (download (content-address object)))))))
+  (generate-download-commands))
+
 ;; Main
 
 (defun main ()
