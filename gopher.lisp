@@ -1,13 +1,16 @@
 ;;; gopher.lisp
 
+
 (defpackage #:mcgopher.gopher
   (:use #:cl
         #:iolib
-        :files-and-folders
-        :peyton-utils
+        #:files-and-folders
+        #:peyton-utils
+        #:alexandria
         #:mcgopher.config
         #:mcgopher.utils)
-  (:export #:contents
+  (:export #:content
+           #:contents
            #:location
            #:host
            #:gopher-port
@@ -30,7 +33,10 @@
            #:tn3270-session-pointer
 
            #:gopher-goto
-           #:download))
+           #:goto-text
+           #:download
+           #:internal-address
+           #:content-address))
 
 (in-package #:mcgopher.gopher)
 
@@ -74,42 +80,67 @@
   "Removes tabs and #\Return from a string."
   (tabs-to-spaces (remove #\Return string)))
 
-(defun gopher-goto (address &optional (port 70))
-  "Given an address, returns a list of Gopher items."
-  (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 2))
-         (host (first split-address))
-         (location (second split-address)))
-    (handler-case
-        (with-open-socket (socket :connect :active
-                                  :address-family :internet
-                                  :type :stream
-                                  :external-format '(:utf-8 :eol-style :crlf)
-                                  :ipv6 nil)
-          (connect socket (lookup-hostname host) :port port :wait t)
-          (format socket "/~A~%" (or location "/"))
-          (force-output socket)
-          (read-items socket))
-      (error () (list (make-instance 'page-error :contents
-                                     "Unable to load page."))))))
+(defmacro with-address-socket (var address &body body)
+  `(let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" ,address :limit 2))
+          (host (first split-address))
+          (location (second split-address)))
+     (handler-case
+         (with-open-socket (,var :connect :active
+                                 :address-family :internet
+                                 :type :stream
+                                 :external-format '(:utf-8 :eol-style :crlf)
+                                 :ipv6 nil)
+           (connect ,var (lookup-hostname host) :port 70 :wait t)
+           (format ,var "/~A~%" (or location "/"))
+           (force-output ,var)
+           ,@body)
+       (hangup ()
+         (list (make-instance 'page-error :contents "Server closed connection
+                                                    when attempting to write.")))
+       (end-of-file ()
+         (list (make-instance 'page-error :contents "Server closed connection
+                                                    when attempting to read.")))
+       (socket-connection-reset-error ()
+         (list (make-instance 'page-error :contentes "Connection reset by
+                                                     peer.")))
+       (socket-connection-refused-error ()
+         (list (make-instance 'page-error :contents "Connection refused.")))
+       (error ()
+         (list (make-instance 'page-error :contents "Unable to load page."))))))
 
-(defun download (address &key name (port 70))
-  (when address
-    (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 2))
-           (host (first split-address))
-           (location (second split-address)))
-      (with-open-socket (socket :connect :active
-                                :address-family :internet
-                                :external-format '(:utf-8 :eol-style :crlf)
-                                :type :stream
-                                :ipv6 nil)
-        (connect socket (lookup-hostname host) :port port :wait t)
-        (format socket "~A~%" location)
-        (force-output socket)
-        (with-open-file (out (merge-paths *download-folder* (or name "untitled"))
-                             :direction :output
-                             :if-exists :supersede
-                             :element-type '(unsigned-byte 8))
-          (loop for byte = (read-byte socket nil)
-             until (null byte) do
-               (write-byte byte out)))
-        (value name)))))
+(defun infer-content-type (address)
+  (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 3))
+         (type (second split-address)))
+    (aif (and (= (length type) 1) (lookup (elt type 0)))
+         (values it (cons (car split-address) (cddr split-address)))
+         (values (lookup #\1) split-address))))
+
+(defun internal-address (content &optional (category #\1))
+  (format nil "~A/~A~A" (host content) category (or (location content) "")))
+
+(defun content-address (content)
+  (format nil "~A/~A" (host content) (location content)))
+
+(defmethod gopher-goto ((object plain-text))
+  (with-address-socket socket (content-address object)
+    (list (fix-formatting (read-stream-content-into-string socket)))))
+
+(defmethod gopher-goto ((object directory-list))
+  "Given an address, returns a list of Gopher items."
+  (with-address-socket socket (content-address object)
+    (read-items socket)))
+
+(defmethod gopher-goto ((address string))
+  "Given an address, returns a list of Gopher items."
+  (multiple-value-bind (type split-address)
+      (infer-content-type address)
+    (gopher-goto (make-instance type :host (car split-address)
+                                     :location (format nil "~{~A~^ ~}"
+                                                       (cdr split-address))))))
+
+(defun download (address &optional name)
+  (with-address-socket socket address
+    (write-byte-vector-into-file (read-stream-content-into-byte-vector socket)
+                                 (merge-paths *download-folder*
+                                              (or name "untitled"))))
+  (value (or name "untitled")))

@@ -8,7 +8,8 @@
                #:iolib
                #:files-and-folders
                #:peyton-utils
-               #:cl-ppcre)
+               #:cl-ppcre
+               #:alexandria)
   :serial t
   :components ((:file "config")
                (:file "utils")

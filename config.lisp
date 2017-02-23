@@ -37,5 +37,9 @@
 (defvar *background-color* +white+)
 (defvar *foreground-color* +black+)
 
+;; Keybindings
+(defvar *key-quit*)
+(defvar *key-previous*)
+
 ;; Misc
 (defvar *download-folder* #P"~/Downloads")

@@ -2,7 +2,7 @@
 
 (in-package #:mcgopher)
 
-(define-application-frame superapp ()
+(define-application-frame mcgopher ()
   ((history :type queue
             :initform (make-queue :elements '("gopher.floodgap.com")
                                   :max-size 10)
@@ -19,6 +19,7 @@
                                    (redisplay-frame-pane *application-frame*
                                                          'app :force-p t)))
    (address :text-field
+            :text-style (make-text-style :fix :roman *font-size*)
             :value (queue-front (page-history *application-frame*))
             :activate-callback #'(lambda (gadget)
                                    (asetf (page-history *application-frame*)
@@ -30,6 +31,7 @@
                                      (activate-gadget-callback
                                       (find-pane-named *application-frame*
                                                        'address))))
+   (int :interactor)
    (app :application
         :incremental-redisplay t
         :display-function 'display-app
@@ -40,7 +42,8 @@
    (default (vertically ()
               (1/12 (horizontally (:x-spacing 5)
                                   back-button refresh address go-button))
-              (10/12 app)))))
+              (10/12 app)
+              (1/12 int)))))
 
 ;; Callbacks
 
@@ -55,13 +58,12 @@
         (queue-front (page-history *application-frame*)))
   (redisplay-frame-pane *application-frame* 'app))
 
-;; Display Functions
-
-;; Create presentation types from gopher content types and define the default
-;; present method.
+;; Presentations
 
 (macrolet
     ((generate-present-methods ()
+       "Creates the default presentation methods from *content-types*. Defaults
+       to #<TYPE: CONTENT>."
        `(progn
           ,@(loop for item in *content-types*
                for class = (symb (cdr item))
@@ -86,20 +88,28 @@
   (declare (ignorable acceptably))
   (format stream "~A~%" (contents object)))
 
+(define-presentation-method present (object (type plain-text) stream
+                                            (view textual-view) &key acceptably)
+  (declare (ignorable acceptably))
+  (with-text-face (stream :bold)
+    (format stream "~A~%" (contents object))))
+
+;; Display Functions
+
 (defun display-app (frame pane)
   "Draws Gopher items to the frame by pulling data from the current page."
   (loop for item in (gopher-goto (queue-front (page-history frame)))
-     do (updating-output (pane :unique-id item :cache-value (contents item))
+     do (updating-output (pane :unique-id item)
           (present item (presentation-type-of item) :stream pane))))
 
 ;; Commands
 
-(define-superapp-command (com-quit :menu "Quit" :name t
-                                   :keystroke (#\q :control)) ()
+(define-mcgopher-command (com-quit :menu "Quit" :name t
+              :keystroke (#\q :control)) ()
   "Exits the application."
   (frame-exit *application-frame*))
 
-(define-superapp-command (com-history :menu "History") ()
+(define-mcgopher-command (com-history :menu "History") ()
   (let ((choice
          (menu-choose
           (mapc #'(lambda (url) `(,url :value ,url))
@@ -108,12 +118,21 @@
         (asetf (page-history *application-frame*)
                (queue-push choice it)))))
 
-(define-superapp-command com-goto ((item 'directory-list :gesture :select))
+(define-mcgopher-command com-open-text ((object 'plain-text :gesture :select))
   "Follows a Gopher item's URL."
   (asetf (page-history *application-frame*)
-         (queue-push (mkstr (host item) (location item)) it)))
+         (queue-push (internal-address object #\0) it)))
 
-(define-superapp-command (com-previous :name t :keystroke (:left :meta)) ()
+(define-mcgopher-command com-follow ((object 'directory-list :gesture :select))
+  "Follows a Gopher item's URL."
+  (asetf (page-history *application-frame*)
+         (queue-push (internal-address object #\1) it)))
+
+(define-mcgopher-command (com-goto :name t) ((string string))
+  (asetf (page-history *application-frame*)
+         (queue-push string it)))
+
+(define-mcgopher-command (com-previous :name t) ()
   "Moves the history back one item."
   (if (> (queue-length (page-history *application-frame*)) 1)
       (asetf (page-history *application-frame*)
@@ -123,4 +142,4 @@
 
 (defun main ()
   "Main entry point to McGopher"
-  (run-frame-top-level (make-application-frame 'superapp :width 800)))
+  (run-frame-top-level (make-application-frame 'mcgopher :width 800)))
