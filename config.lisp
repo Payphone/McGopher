@@ -10,7 +10,9 @@
            #:*foreground-color*
            #:*key-previous*
            #:*key-quit*
-           #:*external-programs*))
+           #:*external-programs*
+           #:previous
+           #:quit))
 
 (in-package #:mcgopher.config)
 
@@ -38,7 +40,7 @@
   '(plain-text binary-archive binary-file gif-image unspecified-image audio))
 
 (defconstant *external-programs*
-  '((gif               . "feh")
+  '((gif-image         . "feh")
     (unspecified-image . "feh")
     (audio             . "mpv")))
 
@@ -48,8 +50,8 @@
 (defvar *foreground-color* +black+)
 
 ;; Keybindings
-(defvar *key-quit*)
-(defvar *key-previous*)
+(define-gesture-name previous :keyboard (:left :meta))
+(define-gesture-name quit :keyboard (#\q :control))
 
 ;; Misc
 (defvar *download-folder* #P"~/Downloads")

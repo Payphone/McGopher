@@ -88,28 +88,23 @@
   (declare (ignorable acceptably))
   (format stream "~A~%" (contents object)))
 
-(define-presentation-method present (object (type plain-text) stream
-                                            (view textual-view) &key acceptably)
-  (declare (ignorable acceptably))
-  (with-text-face (stream :bold)
-    (format stream "~A~%" (contents object))))
-
 ;; Display Functions
 
 (defun display-app (frame pane)
-  "Draws Gopher items to the frame by pulling data from the current page."
+  "Presents items read from the gopher server. Either a directory listing or
+  plain text."
   (loop for item in (gopher-goto (queue-front (page-history frame)))
      do (updating-output (pane :unique-id item)
           (present item (presentation-type-of item) :stream pane))))
 
 ;; Commands
 
-(define-mcgopher-command (com-quit :menu "Quit" :name t
-              :keystroke (#\q :control)) ()
+(define-mcgopher-command (com-quit :menu "Quit" :name t :keystroke quit) ()
   "Exits the application."
   (frame-exit *application-frame*))
 
 (define-mcgopher-command (com-history :menu "History") ()
+  "Shows previously visited links."
   (let ((choice
          (menu-choose
           (mapc #'(lambda (url) `(,url :value ,url))
@@ -119,12 +114,12 @@
                (queue-push choice it)))))
 
 (define-mcgopher-command com-open-text ((object 'plain-text :gesture :select))
-  "Follows a Gopher item's URL."
+  "Opens a text file for display."
   (asetf (page-history *application-frame*)
          (queue-push (internal-address object #\0) it)))
 
 (define-mcgopher-command com-follow ((object 'directory-list :gesture :select))
-  "Follows a Gopher item's URL."
+  "Follows a directory."
   (asetf (page-history *application-frame*)
          (queue-push (internal-address object #\1) it)))
 
@@ -132,7 +127,7 @@
   (asetf (page-history *application-frame*)
          (queue-push string it)))
 
-(define-mcgopher-command (com-previous :name t) ()
+(define-mcgopher-command (com-previous :name t :keystroke previous) ()
   "Moves the history back one item."
   (if (> (queue-length (page-history *application-frame*)) 1)
       (asetf (page-history *application-frame*)
@@ -154,11 +149,11 @@
              "Creates commands for opening content types in external programs."
              `(progn
                 ,@(loop for item in *external-programs*
-                     for class = (symb (car item))
+                     for class = (car item)
                      for program = (cdr item)
                      collect
                        `(define-mcgopher-command ,(symb 'com-open- class)
-                            ((object ',class :gesture :select))
+                            ((object ',(symb class) :gesture :select))
                           (let ((path (download (content-address object))))
                             (uiop/run-program:run-program
                              (format nil "~A ~A" ,program path))

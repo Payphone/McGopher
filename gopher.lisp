@@ -49,6 +49,7 @@
    (gopher-port :initarg :gopher-port :accessor gopher-port)))
 
 (macrolet ((generate-content-classes ()
+             "Create content classes from *content-types*."
              `(progn
                 ,@(loop for item in *content-types*
                         for class = (symb (cdr item))

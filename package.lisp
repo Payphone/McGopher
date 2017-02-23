@@ -5,7 +5,6 @@
         #:clim-lisp
         #:peyton-utils
         #:files-and-folders
-        #:alexandria
         #:mcgopher.config
         #:mcgopher.utils
         #:mcgopher.gopher)
