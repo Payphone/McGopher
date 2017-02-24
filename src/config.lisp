@@ -2,19 +2,23 @@
 
 (defpackage #:mcgopher.config
   (:use #:clim #:clim-lisp)
-  (:export #:*content-types*
+  (:export ;; Gopher Content Types
+           #:*content-types*
            #:*downloadable-types*
-           #:*download-folder*
+           #:*external-programs*
+           ;; Appearance
            #:*font-size*
            #:*background*
            #:*foreground*
            #:*alt-background*
            #:*alt-foreground*
+           ;; Keybindings
            #:*key-previous*
            #:*key-quit*
-           #:*external-programs*
-           #:previous
-           #:quit))
+           #:*key-refresh*
+           ;;Misc
+           #:*download-folder*
+           #:*homepage*))
 
 (in-package #:mcgopher.config)
 
@@ -52,10 +56,12 @@
 (defvar *foreground* +black+)
 (defvar *alt-background* +light-gray+)
 (defvar *alt-foreground* +black+)
+
 ;; Keybindings
-(define-gesture-name previous :keyboard (:left :meta))
-(define-gesture-name quit :keyboard (#\q :control))
-(define-gesture-name refresh :keyboard (:f5))
+(defvar *key-previous* `(:left :meta))
+(defvar *key-quit* `(#\q :control))
+(defvar *key-refresh* `(:F5))
 
 ;; Misc
 (defvar *download-folder* #P"~/Downloads")
+(defvar *homepage* "gopher.floodgap.com")

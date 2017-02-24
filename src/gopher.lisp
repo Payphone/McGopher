@@ -5,16 +5,11 @@
   (:use #:cl
         #:iolib
         #:files-and-folders
-        #:peyton-utils
         #:alexandria
         #:mcgopher.config
         #:mcgopher.utils)
-  (:export #:content
-           #:contents
-           #:location
-           #:host
-           #:gopher-port
-
+  (:export ;; Gopher Content Type Classes
+           #:content
            #:plain-text
            #:directory-list
            #:cso-search-query
@@ -31,7 +26,12 @@
            #:unspecified-image
            #:audio
            #:tn3270-session-pointer
-
+           ;; Class Methods
+           #:contents
+           #:location
+           #:host
+           #:gopher-port
+           ;; Gopher Commands
            #:gopher-goto
            #:goto-text
            #:download
@@ -40,7 +40,7 @@
 
 (in-package #:mcgopher.gopher)
 
-;; Gopher content types
+;; Gopher Content Type Classes
 
 (defclass content ()
   ((contents :initarg :contents :accessor contents :initform nil)
@@ -56,8 +56,10 @@
                         collect `(defclass ,class (content) ())))))
   (generate-content-classes))
 
+;; Gopher Commands
+
 (defun lookup (type)
-  "Find the associated content type."
+  "Find the associated gopher content type when given a character."
   (intern (string (cdr (assoc type *content-types*))) :mcgopher.gopher))
 
 (defun read-item (stream)
@@ -81,7 +83,8 @@
   "Removes tabs and #\Return from a string."
   (tabs-to-spaces (remove #\Return string)))
 
-(defmacro with-address-socket (var address &body body)
+(defmacro with-address-socket ((var address) &body body)
+  "with input from"
   `(let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" ,address :limit 2))
           (host (first split-address))
           (location (second split-address)))
@@ -110,25 +113,31 @@
          (list (make-instance 'page-error :contents "Unable to load page."))))))
 
 (defun infer-content-type (address)
+  "Tries to guess the content type from the address. If it can't find the type
+  it is assumed to be a directory listing."
   (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 3))
-         (type (second split-address)))
-    (aif (and (= (length type) 1) (lookup (elt type 0)))
-         (values it (cons (car split-address) (cddr split-address)))
-         (values (lookup #\1) split-address))))
+         (type (second split-address))
+         (class-type (and (= (length type) 1) (lookup (first-elt type)))))
+    (if class-type
+        (values class-type (remove type split-address :test #'string=))
+        (values (lookup #\1) split-address))))
 
 (defun internal-address (content &optional (category #\1))
+  "Address used for inferring the content type."
   (format nil "~A/~A~A" (host content) category (or (location content) "")))
 
 (defun content-address (content)
+  "Address as read by the Gopher server."
   (format nil "~A/~A" (host content) (location content)))
 
 (defmethod gopher-goto ((object plain-text))
-  (with-address-socket socket (content-address object)
+  "Given a plain-text object, reads the linked content into a string."
+  (with-address-socket (socket (content-address object))
     (list (fix-formatting (read-stream-content-into-string socket)))))
 
 (defmethod gopher-goto ((object directory-list))
   "Given an address, returns a list of Gopher items."
-  (with-address-socket socket (content-address object)
+  (with-address-socket (socket (content-address object))
     (read-items socket)))
 
 (defmethod gopher-goto ((address string))
@@ -140,9 +149,10 @@
                                                        (cdr split-address))))))
 
 (defun download (address &optional file-name)
+  "Saves the server reply to the downloads folder"
   (let* ((name (or file-name (lastcar (ppcre:split "[^a-zA-Z0-9_\\-.]" address))))
          (path (merge-paths *download-folder* name)))
-    (with-address-socket socket address
+    (with-address-socket (socket address)
       (write-byte-vector-into-file (read-stream-content-into-byte-vector socket)
                                    path :if-exists :supersede))
     (values path)))

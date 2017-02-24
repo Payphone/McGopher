@@ -1,7 +1,12 @@
+;;;; utils.lisp
+
 (defpackage #:mcgopher.utils
-  (:use #:cl
-        #:peyton-utils)
+  (:use #:cl)
   (:export #:tabs-to-spaces
+           #:read-until
+           #:asetf
+           #:it
+           ;; Queues
            #:queue
            #:make-queue
            #:queue-elements
@@ -15,6 +20,21 @@
 (defun tabs-to-spaces (string)
   "Converts all tabs to four spaces in a string."
   (ppcre:regex-replace-all #\Tab string "    "))
+
+(defun read-until (separator stream &key (test #'eq) acc)
+  "Builds a list of characters until the separator character is reached.
+  Does not include the separator in the output, but removes the separator from
+  the stream."
+  (let ((character (read-char stream nil)))
+    (if (or (not character) (funcall test separator character))
+        (if acc (coerce (reverse acc) 'string))
+        (read-until separator stream :test test :acc (cons character acc)))))
+
+(defmacro asetf (value new-value)
+  "Anaphoric setf, takes a single pair and binds the evaluated
+   value to 'it'."
+  `(let ((it ,value))
+     (setf ,value ,new-value)))
 
 ;; Queues
 
@@ -31,9 +51,11 @@
 (defun queue-push (element queue)
   "Pushes an element to the front of a queue, returning the new queue."
   (let ((new-queue (copy-structure queue)))
-    (if (< (length (queue-elements queue)) (queue-max-size queue))
-        (asetf (queue-elements new-queue) (cons element it))
-        (asetf (queue-elements new-queue) (cons element (butlast it))))
+    (with-slots (elements max-size) new-queue
+      (if (< (length elements) max-size)
+          (setf (queue-elements new-queue) (cons element elements))
+          (setf (queue-elements new-queue) (cons element
+                                                 (butlast elements)))))
     new-queue))
 
 (defun queue-next (queue)

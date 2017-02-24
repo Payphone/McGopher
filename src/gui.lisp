@@ -3,7 +3,6 @@
 (defpackage #:mcgopher.gui
   (:use #:clim
         #:clim-lisp
-        #:peyton-utils
         #:files-and-folders
         #:mcgopher.config
         #:mcgopher.utils
@@ -17,7 +16,7 @@
 
 (define-application-frame mcgopher ()
   ((history :type queue
-            :initform (make-queue :elements '("gopher.floodgap.com")
+            :initform (make-queue :elements (list *homepage*)
                                   :max-size 10)
             :accessor page-history))
   (:pointer-documentation t)
@@ -121,7 +120,8 @@
 
 ;; Commands
 
-(define-mcgopher-command (com-quit :menu "Quit" :name t :keystroke quit) ()
+(define-mcgopher-command (com-quit :menu "Quit" :name t :keystroke #.*key-quit*)
+    ()
   "Exits the application."
   (frame-exit *application-frame*))
 
@@ -134,6 +134,9 @@
     (if (typep choice 'string)
         (asetf (page-history *application-frame*)
                (queue-push choice it)))))
+
+(define-mcgopher-command (com-refresh :keystroke #.*key-refresh*) ()
+  (activate-gadget-callback (find-pane-named *application-frame* 'refresh)))
 
 (define-mcgopher-command com-open-text ((object 'plain-text :gesture :select))
   "Opens a text file for display."
@@ -149,7 +152,7 @@
   (asetf (page-history *application-frame*)
          (queue-push string it)))
 
-(define-mcgopher-command (com-previous :name t :keystroke previous) ()
+(define-mcgopher-command (com-previous :name t :keystroke #.*key-previous*) ()
   "Moves the history back one item."
   (if (> (queue-length (page-history *application-frame*)) 1)
       (asetf (page-history *application-frame*)

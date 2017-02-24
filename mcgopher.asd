@@ -7,12 +7,11 @@
   :depends-on (#:mcclim
                #:iolib
                #:files-and-folders
-               #:peyton-utils
                #:cl-ppcre
                #:alexandria)
   :serial t
-  :components ((:file "config")
-               (:file "utils")
-               (:file "gopher")
-               (:file "gui")
+  :components ((:file "src/config")
+               (:file "src/utils")
+               (:file "src/gopher")
+               (:file "src/gui")
                (:file "package")))
