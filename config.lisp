@@ -6,8 +6,10 @@
            #:*downloadable-types*
            #:*download-folder*
            #:*font-size*
-           #:*background-color*
-           #:*foreground-color*
+           #:*background*
+           #:*foreground*
+           #:*alt-background*
+           #:*alt-foreground*
            #:*key-previous*
            #:*key-quit*
            #:*external-programs*
@@ -46,12 +48,14 @@
 
 ;; Appearance
 (defvar *font-size* :large)
-(defvar *background-color* +white+)
-(defvar *foreground-color* +black+)
-
+(defvar *background* +white+)
+(defvar *foreground* +black+)
+(defvar *alt-background* +light-gray+)
+(defvar *alt-foreground* +black+)
 ;; Keybindings
 (define-gesture-name previous :keyboard (:left :meta))
 (define-gesture-name quit :keyboard (#\q :control))
+(define-gesture-name refresh :keyboard (:f5))
 
 ;; Misc
 (defvar *download-folder* #P"~/Downloads")

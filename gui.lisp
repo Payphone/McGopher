@@ -25,38 +25,47 @@
    (back-button :push-button
                 :label "Back"
                 :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                       (com-previous)))
+                                             (com-previous))
+                :background *alt-background*
+                :foreground *alt-foreground*)
    (refresh :push-button
             :label "Refresh"
             :activate-callback #'(lambda (gadget) (declare (ignore gadget))
                                    (redisplay-frame-pane *application-frame*
-                                                         'app :force-p t)))
+                                                         'app :force-p t))
+            :background *alt-background*
+            :foreground *alt-foreground*)
    (address :text-field
-            :text-style (make-text-style :fix :roman *font-size*)
+            :text-style (make-text-style :fix :roman :large)
             :value (queue-front (page-history *application-frame*))
             :activate-callback #'(lambda (gadget)
                                    (asetf (page-history *application-frame*)
                                           (queue-push (gadget-value gadget) it)))
-            :text-style (make-text-style :fix :roman *font-size*))
+            :text-style (make-text-style :fix :roman *font-size*)
+            :background *background*
+            :foreground *foreground*)
    (go-button :push-button
               :label "Go"
               :activate-callback #'(lambda (gadget) (declare (ignore gadget))
                                      (activate-gadget-callback
                                       (find-pane-named *application-frame*
-                                                       'address))))
+                                                       'address)))
+              :background *alt-background*
+              :foreground *alt-foreground*)
    (int :interactor)
    (app :application
         :incremental-redisplay t
         :display-function 'display-app
         :text-style (make-text-style :fix :roman *font-size*)
-        :background *background-color*
-        :foreground *foreground-color*))
+        :background *background*
+        :foreground *foreground*))
   (:layouts
-   (default (vertically ()
-              (1/12 (horizontally (:x-spacing 5)
-                                  back-button refresh address go-button))
-              (10/12 app)
-              (1/12 int)))))
+   (default
+       (vertically ()
+         (1/12 (horizontally (:spacing 5 :background *alt-background*)
+                 back-button refresh address go-button))
+         (10/12 app)
+         (1/12 int)))))
 
 ;; Callbacks
 
@@ -178,4 +187,5 @@
 
 (defun main ()
   "Main entry point to McGopher"
-  (run-frame-top-level (make-application-frame 'mcgopher :width 800)))
+  (run-frame-top-level (make-application-frame 'mcgopher :pretty-name "McGopher"
+                                               :width 800)))
