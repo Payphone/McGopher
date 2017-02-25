@@ -8,10 +8,14 @@ Assuming you have [Quicklisp](https://www.quicklisp.org/beta/) installed clone
 the repository into your quicklisp folder.
 ```
 cd ~/quicklisp/local-projects/
-git clone https://github.com/Peytonien/McGopher
+git clone https://github.com/Payphone/McGopher
 ```
 Then from your lisp implementation run
 ```
 (ql:quickload :mcgopher)
 (mcgopher:main)
 ```
+## Configuring
+Inside the src folder there is a file named config.lisp, this is used to
+configure keybindings, colors, and other various settings. Change these as you
+like, then reload McGopher.
