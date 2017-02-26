@@ -100,18 +100,17 @@
            (force-output ,var)
            ,@body)
        (hangup ()
-         (list (make-instance 'page-error :contents "Server closed connection
-                                                    when attempting to write.")))
+         (make-instance 'page-error :contents "Server closed connection
+                                                    when attempting to write."))
        (end-of-file ()
-         (list (make-instance 'page-error :contents "Server closed connection
-                                                    when attempting to read.")))
+         (make-instance 'page-error :contents "Server closed connection
+                                                    when attempting to read."))
        (socket-connection-reset-error ()
-         (list (make-instance 'page-error :contentes "Connection reset by
-                                                     peer.")))
+         (make-instance 'page-error :contentes "Connection reset by peer."))
        (socket-connection-refused-error ()
-         (list (make-instance 'page-error :contents "Connection refused.")))
+         (make-instance 'page-error :contents "Connection refused."))
        (error ()
-         (list (make-instance 'page-error :contents "Unable to load page."))))))
+         (make-instance 'page-error :contents "Unable to load page.")))))
 
 (defun infer-content-type (address)
   "Tries to guess the content type from the address. If it can't find the type
@@ -135,7 +134,7 @@
 (defmethod gopher-goto ((object plain-text))
   "Given a plain-text object, reads the linked content into a string."
   (with-address-socket (socket (content-address object))
-    (list (fix-formatting (read-stream-content-into-string socket)))))
+    (fix-formatting (read-stream-content-into-string socket))))
 
 (defmethod gopher-goto ((object directory-list))
   "Given an address, returns a list of Gopher content items."
@@ -145,7 +144,9 @@
        collect item)))
 
 (defmethod gopher-goto ((content content))
-  (download (content-address content) (contents content)))
+  (download (content-address content))
+  (make-instance 'information :contents (format nil "Saved file to ~A"
+                                                *download-folder*)))
 
 (defmethod gopher-goto ((address string))
   "Given an address, returns a list of Gopher items."

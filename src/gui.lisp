@@ -6,7 +6,8 @@
         #:files-and-folders
         #:mcgopher.config
         #:mcgopher.utils
-        #:mcgopher.gopher)
+        #:mcgopher.gopher
+        #:alexandria)
   (:import-from :alexandria
                 :symbolicate)
   (:export
@@ -105,7 +106,8 @@
 (defun display-app (frame pane)
   "Presents items read from the gopher server. Either a directory listing or
   plain text."
-  (loop for item in (gopher-goto (queue-front (page-history frame)))
+  (loop for item in (ensure-list (gopher-goto (queue-front
+                                               (page-history frame))))
      do (updating-output (pane :unique-id item)
           (present item (presentation-type-of item) :stream pane))))
 
