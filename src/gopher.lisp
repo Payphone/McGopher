@@ -6,6 +6,7 @@
         #:iolib
         #:files-and-folders
         #:alexandria
+        #:split-sequence
         #:mcgopher.config
         #:mcgopher.utils)
   (:export ;; Gopher Content Type Classes
@@ -26,7 +27,7 @@
            #:unspecified-image
            #:audio
            #:tn3270-session-pointer
-           ;; Class Methods
+           ;; Content Methods
            #:contents
            #:location
            #:host
@@ -59,25 +60,21 @@
 ;; Gopher Commands
 
 (defun lookup (type)
-  "Find the associated gopher content type when given a character."
+  "Find the associated gopher content type when given a character. For some
+  reason SBCL doesn't correctly detect the package, so it's specified manually
+  here."
   (intern (string (cdr (assoc type *content-types*))) :mcgopher.gopher))
 
-(defun read-item (stream)
+(defun string->content (string)
   "Given a stream from a Gopher server, attempts to read a Gopher item."
-  (let ((category (lookup (read-char stream nil))))
+  (let* ((item (split-sequence:split-sequence #\Tab string))
+         (category (lookup (first-elt (car item)))))
     (when category
       (make-instance category
-                     :contents (or (read-until #\Tab stream) "")
-                     :location (read-until #\Tab stream)
-                     :host (read-until #\Tab stream)
-                     :gopher-port (remove #\Return
-                                          (read-until #\Newline stream))))))
-
-(defun read-items (stream)
-  "Reads gopher items from a stream"
-  (loop for item = (read-item stream)
-     until (null item)
-     collect item))
+                     :contents (remove-if (lambda (x) x) (nth 0 item) :end 1)
+                     :location (nth 1 item)
+                     :host (nth 2 item)
+                     :gopher-port (remove #\Return (nth 3 item))))))
 
 (defun fix-formatting (string)
   "Removes tabs and #\Return from a string."
@@ -136,9 +133,11 @@
     (list (fix-formatting (read-stream-content-into-string socket)))))
 
 (defmethod gopher-goto ((object directory-list))
-  "Given an address, returns a list of Gopher items."
+  "Given an address, returns a list of Gopher content items."
   (with-address-socket (socket (content-address object))
-    (read-items socket)))
+    (loop for item = (string->content (read-line socket))
+       until (null item)
+       collect item)))
 
 (defmethod gopher-goto ((address string))
   "Given an address, returns a list of Gopher items."

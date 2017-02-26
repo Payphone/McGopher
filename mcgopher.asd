@@ -8,7 +8,8 @@
                #:iolib
                #:files-and-folders
                #:cl-ppcre
-               #:alexandria)
+               #:alexandria
+               #:split-sequence)
   :serial t
   :components ((:file "src/config")
                (:file "src/utils")
