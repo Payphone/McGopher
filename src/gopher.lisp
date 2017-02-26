@@ -127,18 +127,18 @@
   (format nil "~A/~A~A" (host content) (rlookup (type-of content))
           (or (location content) "")))
 
-(defmethod content-location ((content content))
+(defmethod content-address ((content content))
   "Address as read by the Gopher server."
   (format nil "~A/~A" (host content) (location content)))
 
 (defmethod gopher-goto ((object plain-text))
   "Given a plain-text object, reads the linked content into a string."
-  (with-address-socket (socket (content-location object))
+  (with-address-socket (socket (content-address object))
     (list (fix-formatting (read-stream-content-into-string socket)))))
 
 (defmethod gopher-goto ((object directory-list))
   "Given an address, returns a list of Gopher content items."
-  (with-address-socket (socket (content-location object))
+  (with-address-socket (socket (content-address object))
     (loop for item = (string->content (read-line socket))
        until (null item)
        collect item)))
