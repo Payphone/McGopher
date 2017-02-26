@@ -36,8 +36,7 @@
            #:gopher-goto
            #:goto-text
            #:download
-           #:internal-address
-           #:content-address))
+           #:content->address))
 
 (in-package #:mcgopher.gopher)
 
@@ -64,6 +63,10 @@
   reason SBCL doesn't correctly detect the package, so it's specified manually
   here."
   (intern (string (cdr (assoc type *content-types*))) :mcgopher.gopher))
+
+(defun rlookup (class)
+  "Given a content class name, returns the associated character."
+  (car (rassoc class *content-types* :test #'string=)))
 
 (defun string->content (string)
   "Given a stream from a Gopher server, attempts to read a Gopher item."
@@ -119,22 +122,23 @@
         (values class-type (remove type split-address :test #'string=))
         (values (lookup #\1) split-address))))
 
-(defun internal-address (content &optional (category #\1))
+(defmethod content->address ((content content))
   "Address used for inferring the content type."
-  (format nil "~A/~A~A" (host content) category (or (location content) "")))
+  (format nil "~A/~A~A" (host content) (rlookup (type-of content))
+          (or (location content) "")))
 
-(defun content-address (content)
+(defmethod content-location ((content content))
   "Address as read by the Gopher server."
   (format nil "~A/~A" (host content) (location content)))
 
 (defmethod gopher-goto ((object plain-text))
   "Given a plain-text object, reads the linked content into a string."
-  (with-address-socket (socket (content-address object))
+  (with-address-socket (socket (content-location object))
     (list (fix-formatting (read-stream-content-into-string socket)))))
 
 (defmethod gopher-goto ((object directory-list))
   "Given an address, returns a list of Gopher content items."
-  (with-address-socket (socket (content-address object))
+  (with-address-socket (socket (content-location object))
     (loop for item = (string->content (read-line socket))
        until (null item)
        collect item)))

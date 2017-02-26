@@ -68,6 +68,7 @@
 
 ;; Callbacks
 
+(defun address-callback (gadget))
 (defun activate-gadget-callback (gadget)
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
 
@@ -141,12 +142,12 @@
 (define-mcgopher-command com-open-text ((object 'plain-text :gesture :select))
   "Opens a text file for display."
   (asetf (page-history *application-frame*)
-         (queue-push (internal-address object #\0) it)))
+         (queue-push (content->address object) it)))
 
 (define-mcgopher-command com-follow ((object 'directory-list :gesture :select))
   "Follows a directory."
   (asetf (page-history *application-frame*)
-         (queue-push (internal-address object #\1) it)))
+         (queue-push (content->address object) it)))
 
 (define-mcgopher-command (com-goto :name t) ((string string))
   (asetf (page-history *application-frame*)
