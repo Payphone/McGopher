@@ -11,6 +11,7 @@
         #:mcgopher.utils)
   (:export ;; Gopher Content Type Classes
            #:content
+           #:link
            #:plain-text
            #:directory-list
            #:cso-search-query
@@ -41,21 +42,50 @@
 
 (in-package #:mcgopher.gopher)
 
-;; Gopher Content Type Classes
+;; Gopher Content Types
+
+(defparameter *content-types*
+  '((#\0 . plain-text)
+    (#\1 . directory-list)
+    (#\2 . cso-search-query)
+    (#\3 . page-error)
+    (#\4 . binhex-text)
+    (#\5 . binary-archive)
+    (#\6 . uuencoded-text)
+    (#\7 . search-query)
+    (#\8 . telnet-session-pointer)
+    (#\9 . binary-file)
+    (#\g . gif-image)
+    (#\h . html-file)
+    (#\i . information)
+    (#\I . unspecified-image)
+    (#\s . audio)
+    (#\T . tn3270-session-pointer)))
 
 (defclass content ()
   ((contents :initarg :contents :accessor contents :initform nil)
-   (location :initarg :location :accessor location)
-   (host :initarg :host :accessor host)
-   (gopher-port :initarg :gopher-port :accessor gopher-port)))
+   (location :initarg :location :accessor location :initform nil)
+   (host :initarg :host :accessor host :initform nil)
+   (gopher-port :initarg :gopher-port :accessor gopher-port :initform nil)))
 
-(macrolet ((generate-content-classes ()
-             "Create content classes from *content-types*."
-             `(progn
-                ,@(loop for item in *content-types*
-                        for class = (symbolicate (cdr item))
-                        collect `(defclass ,class (content) ())))))
-  (generate-content-classes))
+(defclass link () ())
+
+(defclass plain-text             (content link) ())
+(defclass directory-list         (content link) ())
+(defclass cso-search-query       (content) ())
+(defclass page-error             (content) ())
+(defclass binhex-text            (content link) ())
+(defclass binary-archive         (content link) ())
+(defclass uuencoded-text         (content link) ())
+(defclass search-query           (content) ())
+(defclass telnet-session-pointer (content) ())
+(defclass binary-file            (content link) ())
+(defclass gif-image              (content link) ())
+(defclass html-file              (content link) ())
+(defclass information            (content) ())
+(defclass unspecified-image      (content link) ())
+(defclass audio                  (content link) ())
+(defclass tn3270-session-pointer (content) ())
 
 ;; Gopher Commands
 
@@ -143,7 +173,8 @@
        until (null item)
        collect item)))
 
-(defmethod gopher-goto ((content content))
+(defmethod gopher-goto ((content link))
+  "Downloads the contents of the link, unless otherwise specified above."
   (download (content-address content))
   (make-instance 'information :contents (format nil "Saved file to ~A"
                                                 *download-folder*)))
@@ -158,7 +189,8 @@
 
 (defun download (address &optional file-name)
   "Saves the server reply to the downloads folder"
-  (let* ((name (or file-name (lastcar (ppcre:split "[^a-zA-Z0-9_\\-.]" address))))
+  (let* ((name (or file-name
+                   (lastcar (ppcre:split "[^a-zA-Z0-9_\\-.]" address))))
          (path (merge-paths *download-folder* name)))
     (with-address-socket (socket address)
       (write-byte-vector-into-file (read-stream-content-into-byte-vector socket)

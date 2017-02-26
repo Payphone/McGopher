@@ -6,10 +6,10 @@
         #:files-and-folders
         #:mcgopher.config
         #:mcgopher.utils
-        #:mcgopher.gopher
-        #:alexandria)
+        #:mcgopher.gopher)
   (:import-from :alexandria
-                :symbolicate)
+                :symbolicate
+                :ensure-list)
   (:export
    #:main))
 
@@ -131,19 +131,10 @@
 (define-mcgopher-command (com-refresh :keystroke #.*key-refresh*) ()
   (activate-gadget-callback (find-pane-named *application-frame* 'refresh)))
 
-(define-mcgopher-command com-open-text ((object 'plain-text :gesture :select))
-  "Opens a text file for display."
+(define-mcgopher-command com-goto ((object 'link :gesture :select))
+  "Opens the object."
   (asetf (page-history *application-frame*)
          (queue-push (content->address object) it)))
-
-(define-mcgopher-command com-follow ((object 'directory-list :gesture :select))
-  "Follows a directory."
-  (asetf (page-history *application-frame*)
-         (queue-push (content->address object) it)))
-
-(define-mcgopher-command (com-goto :name t) ((string string))
-  (asetf (page-history *application-frame*)
-         (queue-push string it)))
 
 (define-mcgopher-command (com-previous :name t :keystroke #.*key-previous*) ()
   "Moves the history back one item."
@@ -151,18 +142,8 @@
       (asetf (page-history *application-frame*)
              (queue-next it))))
 
-(macrolet ((generate-download-commands ()
-             "Creates commands to download gopher content types. Since CLIM
-             doesn't support generic commands, each one has to be named
-             different."
-             `(progn
-                ,@(loop for class in *downloadable-types*
-                     collect
-                       `(define-mcgopher-command ,(symbolicate 'com-download-
-                                                               class)
-                            ((object ',(symbolicate class) :gesture :edit))
-                          (download (content-address object)))))))
-  (generate-download-commands))
+(define-mcgopher-command com-download ((object 'link :gesture :edit))
+  (download (content-address object)))
 
 (macrolet ((generate-external-commands ()
              "Creates commands for opening content types in external programs."
