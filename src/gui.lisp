@@ -82,22 +82,12 @@
 
 ;; Presentations
 
-(macrolet
-    ((generate-present-methods ()
-       "Creates the default presentation methods from *content-types*. Defaults
-       to #<TYPE: CONTENT>."
-       `(progn
-          ,@(loop for item in *content-types*
-               for class = (symbolicate (cdr item))
-               collect `(define-presentation-method present
-                            (object (type ,class) stream (view textual-view)
-                                    &key acceptably)
-                          (declare (ignore acceptably))
-                          (with-text-face (stream :bold)
-                            (format stream "#<~A: ~A>~%" ',class
-                                    (contents object))))))))
-
-  (generate-present-methods))
+(define-presentation-method present (object (type content) stream
+                                            (view textual-view)
+                                            &key acceptably)
+  (declare (ignore acceptably))
+  (with-text-face (stream :bold)
+    (format stream "#<~A: ~A>~%" (type-of object) (contents object))))
 
 (define-presentation-method present (object (type directory-list) stream
                                             (view textual-view) &key acceptably)

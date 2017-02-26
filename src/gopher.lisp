@@ -36,6 +36,7 @@
            #:gopher-goto
            #:goto-text
            #:download
+           #:content-address
            #:content->address))
 
 (in-package #:mcgopher.gopher)
@@ -142,6 +143,9 @@
     (loop for item = (string->content (read-line socket))
        until (null item)
        collect item)))
+
+(defmethod gopher-goto ((content content))
+  (download (content-address content) (contents content)))
 
 (defmethod gopher-goto ((address string))
   "Given an address, returns a list of Gopher items."
