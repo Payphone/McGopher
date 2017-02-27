@@ -90,10 +90,8 @@
 ;; Gopher Commands
 
 (defun lookup (type)
-  "Find the associated gopher content type when given a character. For some
-  reason SBCL doesn't correctly detect the package, so it's specified manually
-  here."
-  (intern (string (cdr (assoc type *content-types*))) :mcgopher.gopher))
+  "Find the associated content type when given a character."
+  (cdr (assoc type *content-types*)))
 
 (defun rlookup (class)
   "Given a content class name, returns the associated character."
@@ -115,7 +113,7 @@
   (tabs-to-spaces (remove #\Return string)))
 
 (defmacro with-address-socket ((var address) &body body)
-  "with input from"
+  "With the server response after sending the address stored as a stream in var."
   `(let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" ,address :limit 2))
           (host (first split-address))
           (location (second split-address)))
@@ -143,7 +141,7 @@
          (make-instance 'page-error :contents "Unable to load page.")))))
 
 (defun infer-content-type (address)
-  "Tries to guess the content type from the address. If it can't find the type
+  "Tries to guess the content type from the address. If it can't find the type,
   it is assumed to be a directory listing."
   (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 3))
          (type (second split-address))
@@ -162,19 +160,19 @@
   (format nil "~A/~A" (host content) (location content)))
 
 (defmethod gopher-goto ((object plain-text))
-  "Given a plain-text object, reads the linked content into a string."
+  "Returns the contents of the plain text file."
   (with-address-socket (socket (content-address object))
     (fix-formatting (read-stream-content-into-string socket))))
 
 (defmethod gopher-goto ((object directory-list))
-  "Given an address, returns a list of Gopher content items."
+  "Returns a list of content items associated with the directory."
   (with-address-socket (socket (content-address object))
     (loop for item = (string->content (read-line socket))
        until (null item)
        collect item)))
 
 (defmethod gopher-goto ((content link))
-  "Downloads the contents of the link, unless otherwise specified above."
+  "Attempts to download from the link's address."
   (download (content-address content))
   (make-instance 'information :contents (format nil "Saved file to ~A"
                                                 *download-folder*)))
@@ -188,7 +186,7 @@
                                                        (cdr split-address))))))
 
 (defun download (address &optional file-name)
-  "Saves the server reply to the downloads folder"
+  "Saves the server reply to the downloads folder, and returns the file name."
   (let* ((name (or file-name
                    (lastcar (ppcre:split "[^a-zA-Z0-9_\\-.]" address))))
          (path (merge-paths *download-folder* name)))

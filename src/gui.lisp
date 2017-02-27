@@ -69,7 +69,6 @@
 
 ;; Callbacks
 
-(defun address-callback (gadget))
 (defun activate-gadget-callback (gadget)
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
 
@@ -107,9 +106,9 @@
   "Presents items read from the gopher server. Either a directory listing or
   plain text."
   (loop for item in (ensure-list (gopher-goto (queue-front
-                                               (page-history frame))))
-     do (updating-output (pane :unique-id item)
-          (present item (presentation-type-of item) :stream pane))))
+                                               (page-history frame)))) do
+       (updating-output (pane :unique-id item)
+         (present item (presentation-type-of item) :stream pane))))
 
 ;; Commands
 
@@ -143,10 +142,11 @@
              (queue-next it))))
 
 (define-mcgopher-command com-download ((object 'link :gesture :edit))
+  "Downloads the linked content."
   (download (content-address object)))
 
 (macrolet ((generate-external-commands ()
-             "Creates commands for opening content types in external programs."
+             "Creates commands for opening content in external programs."
              `(progn
                 ,@(loop for item in *external-programs*
                      for class = (car item)
