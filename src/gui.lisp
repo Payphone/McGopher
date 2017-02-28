@@ -80,7 +80,7 @@
         (queue-front (page-history *application-frame*)))
   (redisplay-frame-pane *application-frame* 'app))
 
-;; Presentations
+;; Presentation Methods
 
 (define-presentation-method present (object (type content) stream
                                             (view textual-view)
@@ -99,6 +99,26 @@
                                             (view textual-view) &key acceptably)
   (declare (ignorable acceptably))
   (format stream "~A~%" (contents object)))
+
+;; Translators
+
+(define-presentation-to-command-translator goto
+    (link com-goto mcgopher
+          :menu nil
+          :gesture :select
+          :documentation "Goto link"
+          :pointer-documentation "Goto link")
+    (object)
+  (list object))
+
+(define-presentation-to-command-translator download
+    (link com-goto mcgopher
+          :menu nil
+          :gesture :edit
+          :documentation "Download file"
+          :pointer-documentation "Download file")
+    (object)
+  (list object))
 
 ;; Display Functions
 
