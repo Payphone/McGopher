@@ -103,7 +103,7 @@
 ;; Display Functions
 
 (defun display-app (frame pane)
-  "Presents items read from the gopher server. Either a directory listing or
+  "Presents items read frnom the gopher server. Either a directory listing or
   plain text."
   (loop for item in (ensure-list (gopher-goto (queue-front
                                                (page-history frame)))) do

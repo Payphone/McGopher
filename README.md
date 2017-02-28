@@ -19,3 +19,6 @@ Then from your lisp implementation run
 Inside the src folder there is a file named config.lisp, this is used to
 configure keybindings, colors, and other various settings. Change these as you
 like, then reload McGopher.
+
+## Screenshots
+![McGopher](/screenshots/McGopher.gif?raw=true "McGopher")
