@@ -137,7 +137,7 @@
   "Exits the application."
   (frame-exit *application-frame*))
 
-(define-mcgopher-command (com-history :menu "History") ()
+(define-mcgopher-command (com-history :name t :menu "History") ()
   "Shows previously visited links."
   (let ((choice
          (menu-choose
@@ -147,13 +147,17 @@
         (asetf (page-history *application-frame*)
                (queue-push choice it)))))
 
-(define-mcgopher-command (com-refresh :keystroke #.*key-refresh*) ()
+(define-mcgopher-command (com-refresh :name t :keystroke #.*key-refresh*) ()
   (activate-gadget-callback (find-pane-named *application-frame* 'refresh)))
 
 (define-mcgopher-command com-goto ((object 'link :gesture :select))
   "Opens the object."
   (asetf (page-history *application-frame*)
          (queue-push (content->address object) it)))
+
+(define-mcgopher-command (com-goto :name t) ((address string))
+  (asetf (page-history *application-frame*)
+         (queue-push address it)))
 
 (define-mcgopher-command (com-previous :name t :keystroke #.*key-previous*) ()
   "Moves the history back one item."
@@ -164,6 +168,10 @@
 (define-mcgopher-command com-download ((object 'link :gesture :edit))
   "Downloads the linked content."
   (download (content-address object)))
+
+(define-mcgopher-command (com-download :name t) ((address string))
+  "Downloads the linked content."
+  (download address))
 
 (macrolet ((generate-external-commands ()
              "Creates commands for opening content in external programs."
