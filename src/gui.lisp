@@ -150,14 +150,14 @@
 (define-mcgopher-command (com-refresh :name t :keystroke #.*key-refresh*) ()
   (activate-gadget-callback (find-pane-named *application-frame* 'refresh)))
 
+(define-mcgopher-command (com-goto-address :name t) ((address string))
+  (asetf (page-history *application-frame*)
+         (queue-push address it)))
+
 (define-mcgopher-command com-goto ((object 'link :gesture :select))
   "Opens the object."
   (asetf (page-history *application-frame*)
          (queue-push (content->address object) it)))
-
-(define-mcgopher-command (com-goto :name t) ((address string))
-  (asetf (page-history *application-frame*)
-         (queue-push address it)))
 
 (define-mcgopher-command (com-previous :name t :keystroke #.*key-previous*) ()
   "Moves the history back one item."

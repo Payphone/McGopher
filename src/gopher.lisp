@@ -160,6 +160,7 @@
   (format nil "~A/~A" (host content) (location content)))
 
 (defmethod gopher-goto ((object plain-text))
+
   "Returns the contents of the plain text file."
   (with-address-socket (socket (content-address object))
     (fix-formatting (read-stream-content-into-string socket))))
