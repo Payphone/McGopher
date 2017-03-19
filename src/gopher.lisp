@@ -60,15 +60,21 @@
     (#\i . information)
     (#\I . unspecified-image)
     (#\s . audio)
-    (#\T . tn3270-session-pointer)))
+    (#\T . tn3270-session-pointer))
+  "Gopher content types organized in an association list in the format
+  (char . content-type) where 'char' is the character the Gopher server
+  associates with the following content type.")
 
 (defclass content ()
   ((contents :initarg :contents :accessor contents :initform nil)
    (location :initarg :location :accessor location :initform nil)
    (host :initarg :host :accessor host :initform nil)
-   (gopher-port :initarg :gopher-port :accessor gopher-port :initform nil)))
+   (gopher-port :initarg :gopher-port :accessor gopher-port :initform nil))
+  (:documentation "A generic Gopher content class."))
 
-(defclass link () ())
+(defclass link () ()
+  (:documentation "Used primarily by the GUI to identify which content types are
+  'clickable'."))
 
 (defclass plain-text             (content link) ())
 (defclass directory-list         (content link) ())
@@ -87,18 +93,24 @@
 (defclass audio                  (content link) ())
 (defclass tn3270-session-pointer (content) ())
 
-;; Gopher Commands
+;; Gopher Specific Utilities
 
 (defun lookup (type)
-  "Find the associated content type when given a character."
+  "Find the associated content type when given a character. Ex. #\g evaluates to
+  gif-image."
   (cdr (assoc type *content-types*)))
 
 (defun rlookup (class)
-  "Given a content class name, returns the associated character."
+  "Given a content class name, returns the associated character. Ex. gif-image
+  evaluates to #\g."
   (car (rassoc class *content-types* :test #'string=)))
 
 (defun string->content (string)
-  "Given a stream from a Gopher server, attempts to read a Gopher item."
+  "Given a string from a Gopher server, attempts to create an instance of type
+  category, where category is the content type.
+  Ex. 'iInformative Information #\Tab null.host #\Tab 1' would create a new
+  information instance with contents of 'Informative Information' and host
+  'null.host'."
   (let* ((item (split-sequence:split-sequence #\Tab string))
          (category (lookup (first-elt (car item)))))
     (when category
@@ -108,12 +120,31 @@
                      :host (nth 2 item)
                      :gopher-port (remove #\Return (nth 3 item))))))
 
-(defun fix-formatting (string)
-  "Removes tabs and #\Return from a string."
-  (tabs-to-spaces (remove #\Return string)))
+(defun infer-content-type (address)
+  "Tries to guess the content type from the address string. If it can't find the
+  type, it is assumed to be a directory listing."
+  (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 3))
+         (type (second split-address))
+         (class-type (and (= (length type) 1) (lookup (first-elt type)))))
+    (if class-type
+        (values class-type (remove type split-address :test #'string=))
+        (values (lookup #\1) split-address))))
 
-(defmacro with-address-socket ((var address) &body body)
-  "With the server response after sending the address stored as a stream in var."
+(defmethod content->address ((content content))
+  "Address used for inferring the content type. This is not the address read by
+  the Gopher server."
+  (format nil "~A/~A~A" (host content) (rlookup (type-of content))
+          (or (location content) "")))
+
+(defmethod content-address ((content content))
+  "Address as read by the Gopher server. Note: The content type is not needed."
+  (format nil "~A/~A" (host content) (location content)))
+
+;; Interacting With The Gopher Server
+
+(defmacro with-gopher-socket ((var address) &body body)
+  "Sends an address to a gopher server and stores the response in 'var' for use
+  in the body."
   `(let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" ,address :limit 2))
           (host (first split-address))
           (location (second split-address)))
@@ -140,34 +171,14 @@
        (error ()
          (make-instance 'page-error :contents "Unable to load page.")))))
 
-(defun infer-content-type (address)
-  "Tries to guess the content type from the address. If it can't find the type,
-  it is assumed to be a directory listing."
-  (let* ((split-address (ppcre:split "[^a-zA-Z0-9_\\-.]" address :limit 3))
-         (type (second split-address))
-         (class-type (and (= (length type) 1) (lookup (first-elt type)))))
-    (if class-type
-        (values class-type (remove type split-address :test #'string=))
-        (values (lookup #\1) split-address))))
-
-(defmethod content->address ((content content))
-  "Address used for inferring the content type."
-  (format nil "~A/~A~A" (host content) (rlookup (type-of content))
-          (or (location content) "")))
-
-(defmethod content-address ((content content))
-  "Address as read by the Gopher server."
-  (format nil "~A/~A" (host content) (location content)))
-
 (defmethod gopher-goto ((object plain-text))
-
   "Returns the contents of the plain text file."
-  (with-address-socket (socket (content-address object))
+  (with-gopher-socket (socket (content-address object))
     (fix-formatting (read-stream-content-into-string socket))))
 
 (defmethod gopher-goto ((object directory-list))
-  "Returns a list of content items associated with the directory."
-  (with-address-socket (socket (content-address object))
+  "Returns a list of content items associated with the directory list."
+  (with-gopher-socket (socket (content-address object))
     (loop for item = (string->content (read-line socket))
        until (null item)
        collect item)))
@@ -191,7 +202,7 @@
   (let* ((name (or file-name
                    (lastcar (ppcre:split "[^a-zA-Z0-9_\\-.]" address))))
          (path (merge-paths *download-folder* name)))
-    (with-address-socket (socket address)
+    (with-gopher-socket (socket address)
       (write-byte-vector-into-file (read-stream-content-into-byte-vector socket)
                                    path :if-exists :supersede))
     (values path)))

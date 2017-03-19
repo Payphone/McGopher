@@ -70,11 +70,12 @@
 ;; Callbacks
 
 (defun activate-gadget-callback (gadget)
+  "Shorthand for activating a gadgets callback."
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
 
 (defmethod (setf page-history) :after (history new-history)
-  "When the page history changes update the address bar and redraw the
-   content pane."
+  "When the page history changes, update the address bar and redraw the
+   content pane with new content."
   (declare (ignore history new-history))
   (setf (gadget-value (find-pane-named *application-frame* 'address))
         (queue-front (page-history *application-frame*)))
@@ -123,8 +124,7 @@
 ;; Display Functions
 
 (defun display-app (frame pane)
-  "Presents items read frnom the gopher server. Either a directory listing or
-  plain text."
+  "Presents the page at the top of the history."
   (loop for item in (ensure-list (gopher-goto (queue-front
                                                (page-history frame)))) do
        (updating-output (pane :unique-id item)
@@ -148,9 +148,11 @@
                (queue-push choice it)))))
 
 (define-mcgopher-command (com-refresh :name t :keystroke #.*key-refresh*) ()
+  "Refreshes the page."
   (activate-gadget-callback (find-pane-named *application-frame* 'refresh)))
 
 (define-mcgopher-command (com-goto-address :name t) ((address string))
+  "Opens the address."
   (asetf (page-history *application-frame*)
          (queue-push address it)))
 

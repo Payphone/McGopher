@@ -3,6 +3,7 @@
 (defpackage #:mcgopher.utils
   (:use #:cl)
   (:export #:tabs-to-spaces
+           #:fix-formatting
            #:read-until
            #:asetf
            #:it
@@ -21,6 +22,10 @@
   "Converts all tabs to four spaces in a string."
   (ppcre:regex-replace-all #\Tab string "    "))
 
+(defun fix-formatting (string)
+  "Removes tabs and #\Return from a string."
+  (tabs-to-spaces (remove #\Return string)))
+
 (defun read-until (separator stream &key (test #'eq) acc)
   "Builds a list of characters until the separator character is reached.
   Does not include the separator in the output, but removes the separator from
@@ -36,7 +41,7 @@
   `(let ((it ,value))
      (setf ,value ,new-value)))
 
-;; Queues
+;; Basic Queues
 
 (defstruct queue
   "A structure for a queue of elements with a maximum size. If the max size is
