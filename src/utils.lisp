@@ -4,7 +4,6 @@
   (:use #:cl)
   (:export #:tabs-to-spaces
            #:fix-formatting
-           #:read-until
            #:asetf
            #:it
            ;; Queues
@@ -25,15 +24,6 @@
 (defun fix-formatting (string)
   "Removes tabs and #\Return from a string."
   (tabs-to-spaces (remove #\Return string)))
-
-(defun read-until (separator stream &key (test #'eq) acc)
-  "Builds a list of characters until the separator character is reached.
-  Does not include the separator in the output, but removes the separator from
-  the stream."
-  (let ((character (read-char stream nil)))
-    (if (or (not character) (funcall test separator character))
-        (if acc (coerce (reverse acc) 'string))
-        (read-until separator stream :test test :acc (cons character acc)))))
 
 (defmacro asetf (value new-value)
   "Anaphoric setf, takes a single pair and binds the evaluated
