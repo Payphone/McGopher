@@ -4,7 +4,6 @@
 (defpackage #:mcgopher.gopher
   (:use #:cl
         #:iolib
-        #:files-and-folders
         #:alexandria
         #:split-sequence
         #:mcgopher.config
@@ -12,6 +11,7 @@
   (:export ;; Gopher Content Type Classes
            #:content
            #:link
+           #:downloadable
            #:plain-text
            #:directory-list
            #:cso-search-query
@@ -76,21 +76,25 @@
   (:documentation "Used primarily by the GUI to identify which content types are
   'clickable'."))
 
-(defclass plain-text             (content link) ())
+(defclass downloadable (link) ()
+  (:documentation "Used primarily by the GUI to identify which content types are
+  downloadable."))
+
+(defclass plain-text             (content downloadable) ())
 (defclass directory-list         (content link) ())
 (defclass cso-search-query       (content) ())
 (defclass page-error             (content) ())
-(defclass binhex-text            (content link) ())
-(defclass binary-archive         (content link) ())
-(defclass uuencoded-text         (content link) ())
+(defclass binhex-text            (content downloadable) ())
+(defclass binary-archive         (content downloadable) ())
+(defclass uuencoded-text         (content downloadable) ())
 (defclass search-query           (content) ())
 (defclass telnet-session-pointer (content) ())
-(defclass binary-file            (content link) ())
-(defclass gif-image              (content link) ())
-(defclass html-file              (content link) ())
+(defclass binary-file            (content downloadable) ())
+(defclass gif-image              (content downloadable) ())
+(defclass html-file              (content downloadable) ())
 (defclass information            (content) ())
-(defclass unspecified-image      (content link) ())
-(defclass audio                  (content link) ())
+(defclass unspecified-image      (content downloadable) ())
+(defclass audio                  (content downloadable) ())
 (defclass tn3270-session-pointer (content) ())
 
 ;; Gopher Specific Utilities
@@ -198,10 +202,10 @@
                                                        (cdr split-address))))))
 
 (defun download (address &optional file-name)
-  "Saves the server reply to the downloads folder, and returns the file name."
+  "Saves the server reply to the downloads folder and returns the file name."
   (let* ((name (or file-name
                    (lastcar (ppcre:split "[^a-zA-Z0-9_\\-.]" address))))
-         (path (merge-paths *download-folder* name)))
+         (path (merge-pathnames *download-folder* name)))
     (with-gopher-socket (socket address)
       (write-byte-vector-into-file (read-stream-content-into-byte-vector socket)
                                    path :if-exists :supersede))

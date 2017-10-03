@@ -6,7 +6,6 @@
   :license "MIT"
   :depends-on (#:mcclim
                #:iolib
-               #:files-and-folders
                #:cl-ppcre
                #:alexandria
                #:split-sequence)

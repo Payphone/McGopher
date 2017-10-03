@@ -3,8 +3,7 @@
 (defpackage #:mcgopher.gui
   (:use #:clim
         #:clim-lisp
-        #:files-and-folders
-        #:mcgopher.config
+        :mcgopher.config
         #:mcgopher.utils
         #:mcgopher.gopher)
   (:import-from :alexandria
@@ -113,7 +112,7 @@
   (list object))
 
 (define-presentation-to-command-translator download
-    (link com-goto mcgopher
+    (downloadable com-download mcgopher
           :menu nil
           :gesture :edit
           :documentation "Download file"
@@ -167,13 +166,9 @@
       (asetf (page-history *application-frame*)
              (queue-next it))))
 
-(define-mcgopher-command com-download ((object 'link :gesture :edit))
+(define-mcgopher-command com-download ((object 'downloadable :gesture :edit))
   "Downloads the linked content."
   (download (content-address object)))
-
-(define-mcgopher-command (com-download :name t) ((address string))
-  "Downloads the linked content."
-  (download address))
 
 (macrolet ((generate-external-commands ()
              "Creates commands for opening content in external programs."

@@ -32,7 +32,7 @@
 (defvar *key-refresh* `(:F5))
 
 ;; Misc
-(defvar *download-folder* #P"~/Downloads")
+(defvar *download-folder* #P"~/Downloads/")
 (defvar *homepage* "gopher.floodgap.com")
 
 (defconstant *external-programs*
