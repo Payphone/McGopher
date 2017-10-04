@@ -31,7 +31,7 @@
   `(let ((it ,value))
      (setf ,value ,new-value)))
 
-;; Basic Queues
+;;; Basic Queues
 
 (defstruct queue
   "A structure for a queue of elements with a maximum size. If the max size is

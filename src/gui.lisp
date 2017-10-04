@@ -66,7 +66,7 @@
          (10/12 app)
          (1/12 int)))))
 
-;; Callbacks
+;;; Callbacks
 
 (defun activate-gadget-callback (gadget)
   "Shorthand for activating a gadgets callback."
@@ -80,7 +80,7 @@
         (queue-front (page-history *application-frame*)))
   (redisplay-frame-pane *application-frame* 'app))
 
-;; Presentation Methods
+;;; Presentation Methods
 
 (define-presentation-method present (object (type content) stream
                                             (view textual-view)
@@ -100,7 +100,7 @@
   (declare (ignorable acceptably))
   (format stream "~A~%" (contents object)))
 
-;; Translators
+;;; Translators
 
 (define-presentation-to-command-translator goto
     (link com-goto mcgopher
@@ -120,7 +120,7 @@
     (object)
   (list object))
 
-;; Display Functions
+;;; Display Functions
 
 (defun display-app (frame pane)
   "Presents the page at the top of the history."
@@ -129,7 +129,7 @@
        (updating-output (pane :unique-id item)
          (present item (presentation-type-of item) :stream pane))))
 
-;; Commands
+;;; Commands
 
 (define-mcgopher-command (com-quit :menu "Quit" :name t :keystroke #.*key-quit*)
     ()
@@ -185,7 +185,7 @@
                             (uiop/filesystem:delete-file-if-exists path)))))))
   (generate-external-commands))
 
-;; Main
+;;; Main
 
 (defun main ()
   "Main entry point to McGopher"

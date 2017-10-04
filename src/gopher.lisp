@@ -42,7 +42,7 @@
 
 (in-package #:mcgopher.gopher)
 
-;; Gopher Content Types
+;;; Gopher Content Types
 
 (defparameter *content-types*
   '((#\0 . plain-text)
@@ -97,7 +97,7 @@
 (defclass audio                  (content downloadable) ())
 (defclass tn3270-session-pointer (content) ())
 
-;; Gopher Specific Utilities
+;;; Gopher Specific Utilities
 
 (defun lookup (type)
   "Find the associated content type when given a character. Ex. #\g evaluates to
@@ -144,7 +144,7 @@
   "Address as read by the Gopher server. Note: The content type is not needed."
   (format nil "~A/~A" (host content) (location content)))
 
-;; Interacting With The Gopher Server
+;;; Interacting With The Gopher Server
 
 (defmacro with-gopher-socket ((var address) &body body)
   "Sends an address to a gopher server and stores the response in 'var' for use

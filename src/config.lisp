@@ -1,4 +1,4 @@
-;; config.lisp
+;;;; config.lisp
 
 (defpackage #:mcgopher.config
   (:use #:clim #:clim-lisp)
@@ -19,19 +19,22 @@
 
 (in-package #:mcgopher.config)
 
-;; Appearance
+;;; Appearance
+
 (defvar *font-size* :large)
 (defvar *background* +white+)
 (defvar *foreground* +black+)
 (defvar *alt-background* +light-gray+)
 (defvar *alt-foreground* +black+)
 
-;; Keybindings
+;;; Keybindings
+
 (defvar *key-previous* `(:left :meta))
 (defvar *key-quit* `(#\q :control))
 (defvar *key-refresh* `(:F5))
 
-;; Misc
+;;; Misc
+
 (defvar *download-folder* #P"~/Downloads/")
 (defvar *homepage* "gopher.floodgap.com")
 
