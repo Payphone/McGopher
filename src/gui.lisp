@@ -57,7 +57,8 @@
         :display-function 'display-app
         :text-style (make-text-style :fix :roman *font-size*)
         :background *background*
-        :foreground *foreground*))
+        :foreground *foreground*
+        :height :compute))
   (:layouts
    (default
        (vertically ()
@@ -77,8 +78,7 @@
    content pane with new content."
   (declare (ignore history new-history))
   (setf (gadget-value (find-pane-named *application-frame* 'address))
-        (queue-front (page-history *application-frame*)))
-  (redisplay-frame-pane *application-frame* 'app))
+        (queue-front (page-history *application-frame*))))
 
 ;;; Presentation Methods
 
@@ -190,4 +190,4 @@
 (defun main ()
   "Main entry point to McGopher"
   (run-frame-top-level (make-application-frame 'mcgopher :pretty-name "McGopher"
-                                               :width 800)))
+                                                         :width 800)))
