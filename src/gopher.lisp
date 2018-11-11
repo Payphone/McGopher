@@ -1,6 +1,5 @@
 ;;; gopher.lisp
 
-
 (defpackage #:mcgopher.gopher
   (:use #:cl
         #:iolib
@@ -8,41 +7,46 @@
         #:split-sequence
         #:mcgopher.config
         #:mcgopher.utils)
-  (:export ;; Gopher Content Type Classes
-           #:content
-           #:link
-           #:downloadable
-           #:plain-text
-           #:directory-list
-           #:cso-search-query
-           #:page-error
-           #:binhex-text
-           #:binary-archive
-           #:uuencoded-text
-           #:search-query
-           #:telnet-session-pointer
-           #:binary-file
-           #:gif-image
-           #:html-file
-           #:information
-           #:unspecified-image
-           #:audio
-           #:tn3270-session-pointer
-           ;; Content Methods
-           #:contents
-           #:location
-           #:host
-           #:gopher-port
-           ;; Gopher Commands
-           #:gopher-goto
-           #:goto-text
-           #:download
-           #:content-address
-           #:content->address))
+  (:export
+   ;; Gopher Content Type Classes
+   #:content
+   #:link
+   #:downloadable
+   #:external
+   #:plain-text
+   #:directory-list
+   #:cso-search-query
+   #:page-error
+   #:binhex-text
+   #:binary-archive
+   #:uuencoded-text
+   #:search-query
+   #:telnet-session-pointer
+   #:binary-file
+   #:gif-image
+   #:html-file
+   #:information
+   #:unspecified-image
+   #:audio
+   #:tn3270-session-pointer
+   ;; Content Methods
+   #:contents
+   #:location
+   #:host
+   #:gopher-port
+   ;; Gopher Commands
+   #:urlp
+   #:gopher-goto
+   #:goto-text
+   #:download
+   #:content-address
+   #:content->address))
 
 (in-package #:mcgopher.gopher)
 
 ;;; Gopher Content Types
+
+(defconstant +gopher-port+ 70 "The standard Gopher port.")
 
 (defparameter *content-types*
   '((#\0 . plain-text)
@@ -66,38 +70,58 @@
   associates with the following content type.")
 
 (defclass content ()
-  ((contents :initarg :contents :accessor contents :initform nil)
-   (location :initarg :location :accessor location :initform nil)
-   (host :initarg :host :accessor host :initform nil)
-   (gopher-port :initarg :gopher-port :accessor gopher-port :initform nil))
+  ((contents :reader contents
+             :initarg :contents
+             :type string
+             :documentation "The contents of a content type.")
+   (location :reader location
+             :initarg :location
+             :type string
+             :documentation "The selector or path of the content.")
+   (host :reader host
+         :initarg :host
+         :type string
+         :documentation "The hostname associated with the content.")
+   (gopher-port :reader gopher-port
+                :initarg :gopher-port
+                :type integer
+                :documentation "The port used by the host to deliver
+                the content."))
   (:documentation "A generic Gopher content class."))
 
 (defclass link () ()
-  (:documentation "Used primarily by the GUI to identify which content types are
-  'clickable'."))
+  (:documentation "Used primarily by the GUI to identify which content types can
+  be displayed in the browser."))
 
-(defclass downloadable (link) ()
-  (:documentation "Used primarily by the GUI to identify which content types are
-  downloadable."))
+(defclass external () ()
+  (:documentation "Used primarily by the GUI to identify which content types can
+  be opened with external programs."))
 
-(defclass plain-text             (content downloadable) ())
+(defclass downloadable () ()
+  (:documentation "Used primarily by the GUI to identify which content types can
+  be downloaded as a file."))
+
+(defclass plain-text             (content link external downloadable) ())
 (defclass directory-list         (content link) ())
 (defclass cso-search-query       (content) ())
 (defclass page-error             (content) ())
-(defclass binhex-text            (content downloadable) ())
+(defclass binhex-text            (content external downloadable) ())
 (defclass binary-archive         (content downloadable) ())
-(defclass uuencoded-text         (content downloadable) ())
+(defclass uuencoded-text         (content external downloadable) ())
 (defclass search-query           (content) ())
 (defclass telnet-session-pointer (content) ())
 (defclass binary-file            (content downloadable) ())
-(defclass gif-image              (content downloadable) ())
-(defclass html-file              (content downloadable) ())
+(defclass gif-image              (content external downloadable) ())
+(defclass html-file              (content external) ())
 (defclass information            (content) ())
-(defclass unspecified-image      (content downloadable) ())
-(defclass audio                  (content downloadable) ())
+(defclass unspecified-image      (content external downloadable) ())
+(defclass audio                  (content external downloadable) ())
 (defclass tn3270-session-pointer (content) ())
 
 ;;; Gopher Specific Utilities
+
+(defun urlp (string)
+  (string= (subseq string 0 4) "URL:"))
 
 (defun lookup (type)
   "Find the associated content type when given a character. Ex. #\g evaluates to
@@ -109,20 +133,20 @@
   evaluates to #\g."
   (car (rassoc class *content-types* :test #'string=)))
 
-(defun string->content (string)
+(defun ->content (string)
   "Given a string from a Gopher server, attempts to create an instance of type
   category, where category is the content type.
-  Ex. 'iInformative Information #\Tab null.host #\Tab 1' would create a new
+  Ex. 'iInformative Information 	null.host 	1' would create a new
   information instance with contents of 'Informative Information' and host
   'null.host'."
   (let* ((item (split-sequence:split-sequence #\Tab string))
-         (category (lookup (first-elt (car item)))))
+         (category (lookup (first-elt (nth 0 item)))))
     (when category
       (make-instance category
-                     :contents (remove-if (lambda (x) x) (nth 0 item) :end 1)
+                     :contents (subseq (nth 0 item) 1)
                      :location (nth 1 item)
                      :host (nth 2 item)
-                     :gopher-port (remove #\Return (nth 3 item))))))
+                     :gopher-port (parse-integer (nth 3 item) :junk-allowed t)))))
 
 (defun infer-content-type (address)
   "Tries to guess the content type from the address string. If it can't find the
@@ -169,7 +193,7 @@
          (make-instance 'page-error :contents "Server closed connection
                                                     when attempting to read."))
        (socket-connection-reset-error ()
-         (make-instance 'page-error :contentes "Connection reset by peer."))
+         (make-instance 'page-error :contents "Connection reset by peer."))
        (socket-connection-refused-error ()
          (make-instance 'page-error :contents "Connection refused."))
        (error ()
@@ -183,7 +207,7 @@
 (defmethod gopher-goto ((object directory-list))
   "Returns a list of content items associated with the directory list."
   (with-gopher-socket (socket (content-address object))
-    (loop for item = (string->content (read-line socket))
+    (loop for item = (->content (read-line socket))
        until (null item)
        collect item)))
 

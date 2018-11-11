@@ -20,6 +20,7 @@
                                   :max-size 10)
             :accessor page-history))
   (:pointer-documentation t)
+  (:menu-bar #.*menu-bar-p*)
   (:panes
    (back-button :push-button
                 :label "Back"
@@ -30,32 +31,31 @@
    (refresh :push-button
             :label "Refresh"
             :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                   (redisplay-frame-pane *application-frame*
-                                                         'app :force-p t))
+                                         (redisplay-frame-pane *application-frame*
+                                                               'app :force-p t))
             :background *alt-background*
             :foreground *alt-foreground*)
    (address :text-field
-            :text-style (make-text-style :fix :roman :large)
+            :text-style *content-font*
             :value (queue-front (page-history *application-frame*))
             :activate-callback #'(lambda (gadget)
                                    (asetf (page-history *application-frame*)
                                           (queue-push (gadget-value gadget) it)))
-            :text-style (make-text-style :fix :roman *font-size*)
             :background *background*
             :foreground *foreground*)
    (go-button :push-button
               :label "Go"
               :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                     (activate-gadget-callback
-                                      (find-pane-named *application-frame*
-                                                       'address)))
+                                           (activate-gadget-callback
+                                            (find-pane-named *application-frame*
+                                                             'address)))
               :background *alt-background*
               :foreground *alt-foreground*)
    (int :interactor)
    (app :application
         :incremental-redisplay t
         :display-function 'display-app
-        :text-style (make-text-style :fix :roman *font-size*)
+        :text-style *content-font*
         :background *background*
         :foreground *foreground*
         :height :compute))
@@ -63,7 +63,8 @@
    (default
        (vertically ()
          (1/12 (horizontally (:spacing 5 :background *alt-background*)
-                 back-button refresh address go-button))
+                 (1/12 back-button) (1/12 refresh) (9/12 address)
+                 (1/12 go-button)))
          (10/12 app)
          (1/12 int)))))
 
@@ -78,8 +79,7 @@
    content pane with new content."
   (declare (ignore history new-history))
   (setf (gadget-value (find-pane-named *application-frame* 'address))
-        (queue-front (page-history *application-frame*)))
-  (redisplay-frame-pane *application-frame* 'app))
+        (queue-front (page-history *application-frame*))))
 
 ;;; Presentation Methods
 
@@ -171,24 +171,21 @@
   "Downloads the linked content."
   (download (content-address object)))
 
-(macrolet ((generate-external-commands ()
-             "Creates commands for opening content in external programs."
-             `(progn
-                ,@(loop for item in *external-programs*
-                     for class = (car item)
-                     for program = (cdr item)
-                     collect
-                       `(define-mcgopher-command ,(symbolicate 'com-open- class)
-                            ((object ',(symbolicate class) :gesture :select))
-                          (let ((path (download (content-address object))))
-                            (uiop/run-program:run-program
-                             (format nil "~A ~A" ,program path))
-                            (uiop/filesystem:delete-file-if-exists path)))))))
-  (generate-external-commands))
+(define-mcgopher-command com-open-external
+    ((object 'external :gesture :select))
+  (uiop/run-program:run-program
+   (format nil "xdg-open \"~A\"" (content-address object)))  )
+
+(define-mcgopher-command com-open-external
+    ((object 'html-file :gesture :select))
+  (let ((location (location object)))
+    (uiop/run-program:run-program
+     (format nil "xdg-open \"~A\""
+             (if (urlp location) (subseq location 4) location))))  )
 
 ;;; Main
 
 (defun main ()
   "Main entry point to McGopher"
   (run-frame-top-level (make-application-frame 'mcgopher :pretty-name "McGopher"
-                                                         :width 800)))
+                                               :width 800)))
