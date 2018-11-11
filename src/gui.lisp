@@ -79,7 +79,8 @@
    content pane with new content."
   (declare (ignore history new-history))
   (setf (gadget-value (find-pane-named *application-frame* 'address))
-        (queue-front (page-history *application-frame*))))
+        (queue-front (page-history *application-frame*)))
+  (redisplay-frame-pane *application-frame* 'app))
 
 ;;; Presentation Methods
 
