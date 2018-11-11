@@ -19,8 +19,8 @@
             :initform (make-queue :elements (list *homepage*)
                                   :max-size 10)
             :accessor page-history))
-  (:pointer-documentation t)
   (:menu-bar #.*menu-bar-p*)
+  (:pointer-documentation t)
   (:panes
    (back-button :push-button
                 :label "Back"
@@ -109,16 +109,20 @@
           :menu nil
           :gesture :select
           :documentation "Goto link"
-          :pointer-documentation "Goto link")
+          :pointer-documentation
+          ((object stream)
+           (format stream "~A" (content->address object))))
     (object)
   (list object))
 
 (define-presentation-to-command-translator download
     (downloadable com-download mcgopher
-          :menu nil
-          :gesture :edit
-          :documentation "Download file"
-          :pointer-documentation "Download file")
+                  :menu nil
+                  :gesture :edit
+                  :documentation "Download file"
+                  :pointer-documentation
+                  ((object stream)
+                   (format stream "~A" (content-address object))))
     (object)
   (list object))
 
@@ -157,7 +161,7 @@
   (asetf (page-history *application-frame*)
          (queue-push address it)))
 
-(define-mcgopher-command com-goto ((object 'link :gesture :select))
+(define-mcgopher-command com-goto ((object 'link :gesture :pointer-document))
   "Opens the object."
   (asetf (page-history *application-frame*)
          (queue-push (content->address object) it)))
