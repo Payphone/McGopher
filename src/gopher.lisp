@@ -9,6 +9,7 @@
         #:mcgopher.utils)
   (:export
    ;; Gopher Content Type Classes
+   #:gopher-address
    #:content
    #:link
    #:downloadable
@@ -68,6 +69,12 @@
   "Gopher content types organized in an association list in the format
   (char . content-type) where 'char' is the character the Gopher server
   associates with the following content type.")
+
+(defclass gopher-address ()
+  ((gopher-address :reader gopher-address
+                   :initarg :gopher-address
+                   :type string
+                   :documentation "The gopher address.")))
 
 (defclass content ()
   ((contents :reader contents
@@ -201,8 +208,11 @@
 
 (defmethod gopher-goto ((object plain-text))
   "Returns the contents of the plain text file."
-  (with-gopher-socket (socket (content-address object))
-    (fix-formatting (read-stream-content-into-string socket))))
+  (let ((line-count 0))
+    (with-gopher-socket (socket (content-address object))
+      (loop for line = (read-line socket nil) while line collect
+           (fix-formatting line)))))
+
 
 (defmethod gopher-goto ((object directory-list))
   "Returns a list of content items associated with the directory list."
@@ -222,8 +232,8 @@
   (multiple-value-bind (type split-address)
       (infer-content-type address)
     (gopher-goto (make-instance type :host (car split-address)
-                                     :location (format nil "~{~A~^ ~}"
-                                                       (cdr split-address))))))
+                                :location (format nil "~{~A~^ ~}"
+                                                  (cdr split-address))))))
 
 (defun download (address &optional file-name)
   "Saves the server reply to the downloads folder and returns the file name."

@@ -26,6 +26,7 @@
                 :label "Back"
                 :activate-callback #'(lambda (gadget) (declare (ignore gadget))
                                              (com-previous))
+                :text-style *menu-font*
                 :background *alt-background*
                 :foreground *alt-foreground*)
    (refresh :push-button
@@ -33,10 +34,11 @@
             :activate-callback #'(lambda (gadget) (declare (ignore gadget))
                                          (redisplay-frame-pane *application-frame*
                                                                'app :force-p t))
+            :text-style *menu-font*
             :background *alt-background*
             :foreground *alt-foreground*)
    (address :text-field
-            :text-style *content-font*
+            :text-style *menu-font*
             :value (queue-front (page-history *application-frame*))
             :activate-callback #'(lambda (gadget)
                                    (asetf (page-history *application-frame*)
@@ -49,6 +51,7 @@
                                            (activate-gadget-callback
                                             (find-pane-named *application-frame*
                                                              'address)))
+              :text-style *menu-font*
               :background *alt-background*
               :foreground *alt-foreground*)
    (int :interactor)
@@ -91,6 +94,11 @@
   (with-text-face (stream :bold)
     (format stream "#<~A: ~A>~%" (type-of object) (contents object))))
 
+(define-presentation-method present (object (type string) stream
+                                            (view textual-view) &key acceptably)
+  (declare (ignorable acceptably))
+  (format stream "~A~%" object))
+
 (define-presentation-method present (object (type directory-list) stream
                                             (view textual-view) &key acceptably)
   (declare (ignorable acceptably))
@@ -101,6 +109,11 @@
                                             (view textual-view) &key acceptably)
   (declare (ignorable acceptably))
   (format stream "~A~%" (contents object)))
+
+(define-presentation-method present (object (type gopher-address) stream
+                                            (view textual-view) &key acceptably)
+  (declare (ignorable acceptably))
+  (format stream "~A~%" (gopher-address object)))
 
 ;;; Translators
 
@@ -130,10 +143,12 @@
 
 (defun display-app (frame pane)
   "Presents the page at the top of the history."
-  (loop for item in (ensure-list (gopher-goto (queue-front
-                                               (page-history frame)))) do
-       (updating-output (pane :unique-id item)
-         (present item (presentation-type-of item) :stream pane))))
+  (let ((line-count 0))
+    (loop for item in (ensure-list (gopher-goto (queue-front
+                                                 (page-history frame)))) do
+         (updating-output (pane :unique-id item)
+           (if *count-lines* (format pane "~A " (incf line-count)))
+           (present item (presentation-type-of item) :stream pane)))))
 
 ;;; Commands
 
@@ -152,6 +167,10 @@
         (asetf (page-history *application-frame*)
                (queue-push choice it)))))
 
+(define-mcgopher-command (com-toggle-line-count :name t :menu "Line Count") ()
+  (if *count-lines* (setf *count-lines* nil) (setf *count-lines* t))
+  (com-refresh))
+
 (define-mcgopher-command (com-refresh :name t :keystroke #.*key-refresh*) ()
   "Refreshes the page."
   (activate-gadget-callback (find-pane-named *application-frame* 'refresh)))
@@ -165,6 +184,12 @@
   "Opens the object."
   (asetf (page-history *application-frame*)
          (queue-push (content->address object) it)))
+
+(define-mcgopher-command com-goto-gopher-address ((object 'gopher-address
+                                                          :gesture :select))
+  "Opens the object."
+  (asetf (page-history *application-frame*)
+         (queue-push (gopher-address object) it)))
 
 (define-mcgopher-command (com-previous :name t :keystroke #.*key-previous*) ()
   "Moves the history back one item."
@@ -187,6 +212,28 @@
     (uiop/run-program:run-program
      (format nil "xdg-open \"~A\""
              (if (urlp location) (subseq location 4) location))))  )
+
+(defun search-file (file string)
+  "Searches a file for an exact matching string line-by-line."
+  (with-open-file (in file)
+    (loop for line = (read-line in nil) while line
+       if (string= string line) return t)))
+
+(defun bookmark (address)
+  (if (not (search-file *bookmarks* address))
+      (with-open-file (out *bookmarks* :direction :output :if-exists :append
+                           :if-does-not-exist :create)
+        (format out "~A~%" address))))
+
+(define-mcgopher-command (com-bookmark :name t) ()
+  (bookmark (queue-front (page-history *application-frame*))))
+
+(define-mcgopher-command (com-bookmarks :name t) ()
+  (with-open-file (in *bookmarks*)
+    (loop for bookmark = (read-line in nil) while bookmark do
+         (present (make-instance 'gopher-address :gopher-address bookmark)
+                  'gopher-address
+                  :stream (find-pane-named *application-frame* 'int)))))
 
 ;;; Main
 
