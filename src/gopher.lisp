@@ -165,6 +165,8 @@
         (values class-type (remove type split-address :test #'string=))
         (values (lookup #\1) split-address))))
 
+(defmethod contents ((string string)) string)
+
 (defmethod content->address ((content content))
   "Address used for inferring the content type. This is not the address read by
   the Gopher server."

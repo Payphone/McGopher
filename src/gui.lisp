@@ -19,25 +19,28 @@
             :initform (make-queue :elements (list *homepage*)
                                   :max-size 10)
             :accessor page-history))
-  (:menu-bar #.*menu-bar-p*)
+  (:menu-bar #.*menu-bar-p* :display-time t)
   (:pointer-documentation t)
   (:panes
    (back-button :push-button
+                :display-time t
                 :label "Back"
                 :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                             (com-previous))
+                                        (com-previous))
                 :text-style *menu-font*
                 :background *alt-background*
                 :foreground *alt-foreground*)
    (refresh :push-button
+            :display-time t
             :label "Refresh"
             :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                         (redisplay-frame-pane *application-frame*
-                                                               'app :force-p t))
+                                    (redisplay-frame-pane *application-frame*
+                                                          'app))
             :text-style *menu-font*
             :background *alt-background*
             :foreground *alt-foreground*)
    (address :text-field
+            :display-time t
             :text-style *menu-font*
             :value (queue-front (page-history *application-frame*))
             :activate-callback #'(lambda (gadget)
@@ -46,18 +49,19 @@
             :background *background*
             :foreground *foreground*)
    (go-button :push-button
+              :display-time t
               :label "Go"
               :activate-callback #'(lambda (gadget) (declare (ignore gadget))
-                                           (activate-gadget-callback
-                                            (find-pane-named *application-frame*
-                                                             'address)))
+                                      (activate-gadget-callback
+                                       (find-pane-named *application-frame*
+                                                        'address)))
               :text-style *menu-font*
               :background *alt-background*
               :foreground *alt-foreground*)
    (int :interactor)
    (app :application
-        :incremental-redisplay t
         :display-function 'display-app
+        :incremental-redisplay t
         :text-style *content-font*
         :background *background*
         :foreground *foreground*
@@ -74,7 +78,7 @@
 ;;; Callbacks
 
 (defun activate-gadget-callback (gadget)
-  "Shorthand for activating a gadgets callback."
+  "Shorthand for activating a gadget's callback."
   (activate-callback gadget (gadget-client gadget) (gadget-id gadget)))
 
 (defmethod (setf page-history) :after (history new-history)
@@ -146,11 +150,13 @@
   (let ((line-count 0))
     (loop for item in (ensure-list (gopher-goto (queue-front
                                                  (page-history frame)))) do
-         (updating-output (pane :unique-id item)
+         (updating-output (pane :cache-value (contents item))
            (if *count-lines* (format pane "~A " (incf line-count)))
            (present item (presentation-type-of item) :stream pane)))))
 
 ;;; Commands
+
+;; Menu Commands
 
 (define-mcgopher-command (com-quit :menu "Quit" :name t :keystroke #.*key-quit*)
     ()
@@ -171,14 +177,41 @@
   (if *count-lines* (setf *count-lines* nil) (setf *count-lines* t))
   (com-refresh))
 
+;;; Keystroke Commands
+
 (define-mcgopher-command (com-refresh :name t :keystroke #.*key-refresh*) ()
   "Refreshes the page."
   (activate-gadget-callback (find-pane-named *application-frame* 'refresh)))
+
+(define-mcgopher-command (com-previous :name t :keystroke #.*key-previous*) ()
+  "Moves the history back one item."
+  (if (> (queue-length (page-history *application-frame*)) 1)
+      (asetf (page-history *application-frame*)
+             (queue-next it))))
+
+;;; Interactor Commands
 
 (define-mcgopher-command (com-goto-address :name t) ((address string))
   "Opens the address."
   (asetf (page-history *application-frame*)
          (queue-push address it)))
+
+(define-mcgopher-command (com-bookmark :name t) ()
+  (let ((address (queue-front (page-history *application-frame*))))
+    (if (not (search-file *bookmarks* address))
+        (with-open-file (out *bookmarks* :direction :output :if-exists :append
+                             :if-does-not-exist :create)
+          (format out "~A~%" address)))))
+
+(define-mcgopher-command (com-bookmarks :name t) ()
+  (with-open-file (in *bookmarks*)
+    (loop for bookmark = (read-line in nil) while bookmark do
+         (present (make-instance 'gopher-address :gopher-address bookmark)
+                  'gopher-address
+                  :stream (find-pane-named *application-frame* 'int)))))
+
+
+;;; Application Commands
 
 (define-mcgopher-command com-goto ((object 'link :gesture :pointer-document))
   "Opens the object."
@@ -191,18 +224,12 @@
   (asetf (page-history *application-frame*)
          (queue-push (gopher-address object) it)))
 
-(define-mcgopher-command (com-previous :name t :keystroke #.*key-previous*) ()
-  "Moves the history back one item."
-  (if (> (queue-length (page-history *application-frame*)) 1)
-      (asetf (page-history *application-frame*)
-             (queue-next it))))
-
 (define-mcgopher-command com-download ((object 'downloadable :gesture :edit))
   "Downloads the linked content."
   (download (content-address object)))
 
 (define-mcgopher-command com-open-external
-    ((object 'external :gesture :select))
+    ((object 'external :gesture :select :gesture edit))
   (uiop/run-program:run-program
    (format nil "xdg-open \"~A\"" (content-address object)))  )
 
@@ -212,28 +239,6 @@
     (uiop/run-program:run-program
      (format nil "xdg-open \"~A\""
              (if (urlp location) (subseq location 4) location))))  )
-
-(defun search-file (file string)
-  "Searches a file for an exact matching string line-by-line."
-  (with-open-file (in file)
-    (loop for line = (read-line in nil) while line
-       if (string= string line) return t)))
-
-(defun bookmark (address)
-  (if (not (search-file *bookmarks* address))
-      (with-open-file (out *bookmarks* :direction :output :if-exists :append
-                           :if-does-not-exist :create)
-        (format out "~A~%" address))))
-
-(define-mcgopher-command (com-bookmark :name t) ()
-  (bookmark (queue-front (page-history *application-frame*))))
-
-(define-mcgopher-command (com-bookmarks :name t) ()
-  (with-open-file (in *bookmarks*)
-    (loop for bookmark = (read-line in nil) while bookmark do
-         (present (make-instance 'gopher-address :gopher-address bookmark)
-                  'gopher-address
-                  :stream (find-pane-named *application-frame* 'int)))))
 
 ;;; Main
 

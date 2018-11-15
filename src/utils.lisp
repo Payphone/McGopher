@@ -13,7 +13,9 @@
            #:queue-front
            #:queue-push
            #:queue-next
-           #:queue-length))
+           #:queue-length
+           ;; File Searching
+           #:search-file ))
 
 (in-package #:mcgopher.utils)
 
@@ -63,3 +65,11 @@
 (defun queue-length (queue)
   "Returns the length of the queue."
   (length (queue-elements queue)))
+
+;;; File Searching
+
+(defun search-file (file string)
+  "Searches a file for an exact matching string line-by-line."
+  (with-open-file (in file)
+    (loop for line = (read-line in nil) while line
+       if (string= string line) return t)))
