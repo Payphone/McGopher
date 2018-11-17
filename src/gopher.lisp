@@ -166,6 +166,7 @@
         (values (lookup #\1) split-address))))
 
 (defmethod contents ((string string)) string)
+(defmethod contents ((null null)))
 
 (defmethod content->address ((content content))
   "Address used for inferring the content type. This is not the address read by
@@ -210,18 +211,15 @@
 
 (defmethod gopher-goto ((object plain-text))
   "Returns the contents of the plain text file."
-  (let ((line-count 0))
-    (with-gopher-socket (socket (content-address object))
-      (loop for line = (read-line socket nil) while line collect
-           (fix-formatting line)))))
-
+  (with-gopher-socket (socket (content-address object))
+    (loop for line = (read-line socket nil nil) while line collect
+         (fix-formatting line))))
 
 (defmethod gopher-goto ((object directory-list))
   "Returns a list of content items associated with the directory list."
   (with-gopher-socket (socket (content-address object))
-    (loop for item = (->content (read-line socket))
-       until (null item)
-       collect item)))
+    (loop for line = (read-line socket nil nil) while line collect
+         (->content line))))
 
 (defmethod gopher-goto ((content link))
   "Attempts to download from the link's address."
